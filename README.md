@@ -71,6 +71,12 @@ git clone https://www.github.com/ThreebodyDarkforest/Spine_diagnose
 cd Spine_diagnose
 ```
 
+- 安装依赖
+
+```
+pip install -r requirements.txt
+```
+
 - 下载模型文件
 
 您可以通过以下链接下载本项目需要的文件，并将它们存放在 `Spine_diagnose/weights` 目录下。
