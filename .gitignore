@@ -1,0 +1,9 @@
+*.pt
+*.pth
+*.bin
+
+weights/
+test/dataset/
+test/models/
+__pycache__
+runs/
