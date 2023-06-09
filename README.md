@@ -75,6 +75,8 @@ cd Spine_diagnose
 
 您可以通过以下链接下载本项目需要的文件，并将它们存放在 `Spine_diagnose/weights` 目录下。
 
+权重文件下载链接：https://mega.nz/file/sHVQGQLI#oiD6etmKEnG4ZQZBztNcoa3WWRYIcsbpT2I3CNsOh4s
+
 - 运行测试代码
 
 需要注意的是，我们尚未完成真正用于测试的代码。一个可运行的测试代码位于 `Spine_diagnose/modules/adapter.py`，您只需要直接运行它：
