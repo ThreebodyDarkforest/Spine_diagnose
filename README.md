@@ -20,46 +20,6 @@
 
 Spinal Disease Dataset脊柱疾病数据集详情请见[链接](https://tianchi.aliyun.com/dataset/dataDetail?dataId=79463)。
 
-### 项目介绍
-
-本项目的目录树如下：
-
-```
-.
-├── configs
-│   ├── yolov6s6_finetune.py
-│   └── yolov6s.py
-├── data
-│   ├── images
-│   └── spine.yaml
-├── LICENSE
-├── modules
-│   ├── adapter.py
-│   ├── classifier.py
-│   ├── components
-│   ├── detector.py
-│   ├── resnest
-│   ├── resnet
-│   ├── util.py
-│   ├── vit
-│   └── yolov6
-├── README.md
-├── requirements.txt
-├── test
-│   ├── middle_test.ipynb
-│   ├── models
-│   ├── Resnet_infer.py
-│   ├── resnet_test.ipynb
-│   ├── Resnet_train.py
-│   ├── swin_train.py
-│   └── yolo_infer.py
-├── tools
-│   └── gen_yolo_data.py
-└── weights
-```
-
-其中 `modules` 模块中实现了项目的核心功能。
-
 ## 快速开始
 
 由于本项目暂不完善，您需要通过以下方式运行测试代码。
@@ -108,3 +68,58 @@ Classification done.
 [{'xyxy': ((125, 179), (151, 191)), 'label': 'L5-S1 v2', 'class_num': 10, 'confidence': 0.5239071628414889}, {'xyxy': ((117, 162), (149, 184)), 'label': 'L5 v2', 'class_num': 4, 'confidence': 0.7836284251675887}, {'xyxy': ((118, 154), (144, 166)), 'label': 'L4-L5 v2', 'class_num': 9, 'confidence': 0.5585730742222171}, {'xyxy': ((113, 134), (147, 159)), 'label': 'L4 v1', 'class_num': 3, 'confidence': 0.4727259708481813}, {'xyxy': ((118, 128), (144, 140)), 'label': 'L3-L4 v2', 'class_num': 8, 'confidence': 0.6851188511207023}, {'xyxy': ((116, 109), (149, 135)), 'label': 'L3 v2', 'class_num': 2, 'confidence': 0.8005590789324253}, {'xyxy': ((123, 102), (148, 114)), 'label': 'L2-L3 v2', 'class_num': 7, 'confidence': 0.7152538218377865}, {'xyxy': ((122, 84), (153, 107)), 'label': 'L2 v2', 'class_num': 1, 'confidence': 0.7543958538411826}, {'xyxy': ((128, 78), (153, 91)), 'label': 'L1-L2 v1', 'class_num': 6, 'confidence': 0.4898075383329039}, {'xyxy': ((127, 61), (160, 84)), 'label': 'L1 v2', 'class_num': 0, 'confidence': 0.7516732347548739}, {'xyxy': ((132, 55), (160, 68)), 'label': 'T12-L1 v2', 'class_num': 5, 'confidence': 0.78073688683909}]
 done.
 ```
+
+## 项目介绍
+
+本项目的大致思路如下：
+
+- 通过YOLO/Faster-RCNN等目标检测模型对11块椎骨进行定位和检测
+- 将识别到的椎骨切分成11张图片
+- 通过Resnet/VIT/swin transformer等模型对椎骨的图片进行疾病情况分类
+
+如果需要了解具体的实现思路，请移步[详细实现过程](./doc/detail.md)。
+
+本项目的目录树如下：
+
+```
+.
+├── configs
+│   ├── yolov6s6_finetune.py
+│   └── yolov6s.py
+├── data
+│   ├── images
+│   └── spine.yaml
+├── LICENSE
+├── modules
+│   ├── __init__.py
+│   ├── adapter.py
+│   ├── classifier.py
+│   ├── components
+│   ├── detector.py
+│   ├── resnest
+│   ├── resnet
+│   ├── util.py
+│   ├── vit
+│   └── yolov6
+├── README.md
+├── requirements.txt
+├── test
+│   ├── middle_test.ipynb
+│   ├── models
+│   ├── Resnet_infer.py
+│   ├── resnet_test.ipynb
+│   ├── Resnet_train.py
+│   ├── swin_train.py
+│   └── yolo_infer.py
+├── tools
+│   └── gen_yolo_data.py
+└── weights
+```
+
+其中 `modules` 包中实现了项目的核心功能：
+
+- `adapter.py`: 对接不同检测和分类模型的适配器，用于将检测和分类任务集成到一个模块中方便调用。
+- `classifier.py`: 实现了分类器的模型推理部分
+- `detector.py`: 实现了检测器的模型推理部分
+- `util.py`: 放置一些常用函数
+- `yolov6/resnet/vit`: 定义不同的检测/分类模型结构的代码或github仓库

@@ -21,6 +21,23 @@ def get_resnet_model(weights, config_path, half: bool = False, device = 'cpu'):
 
 def classify(model: nn.Module, img: Union[str, np.ndarray], class_names: List[str], \
              model_type: str = 'resnet', plot: bool = False, device = 'cpu'):
+    '''Classify the object to particular classes.
+
+    Please ensure that your input image is 
+    appropriately preprocessed to resemble a vertebra.
+
+    Args:
+        model: (nn.Module), the model to use, note that only supports resnet type now.
+        img: (Union[str, np.ndarray]), the input image to classify
+        class_names: (List[str]), the list of class names
+        model_type: (str), the type of the model, only supports 'resnet' now
+        plot: (bool), whether to plot the image or not
+        device: (str), the device to use, default is 'cpu'
+    
+    Returns:
+        label: (Tuple[str, str]), the predicted label of the input image
+        softmax: (Tuple[float, float]), the softmax probability of the predicted label
+    '''
     model_type = model_type.lower()
     assert model_type in ['resnet', 'resnest', 'vit', 'swin']
 
