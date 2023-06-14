@@ -36,7 +36,7 @@ def process_image(path, img_size, stride, half):
     img_src = np.asarray(Image.open(img))
     assert img_src is not None, f'Invalid image: {path}'
   except Exception as e:
-    LOGGER.Warning(e)
+    LOGGER.warn(e)
   image = letterbox(img_src, img_size, stride=stride)[0]
 
   # Convert

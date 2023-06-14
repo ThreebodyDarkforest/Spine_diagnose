@@ -13,6 +13,9 @@ from pathlib import Path
 import datetime
 import sys
 from util import Config
+import torch.nn as nn
+import glob
+from tqdm import tqdm
 
 from yolov6.core.engine import Trainer
 from yolov6.utils.events import save_yaml, load_yaml
@@ -32,28 +35,56 @@ def get_disease_str(disease: Union[List, tuple]):
     if disease[1] != 'None': disease_str += f', {disease[1]}'
     return disease_str
 
-def predict():
-    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-    model, stride, class_names = get_yolo_model(PATH + '/weights/detect.pt', PATH + '/data/spine.yaml', device=device)
-    img_src, boxes = detect(model, PATH + '/data/images/study3_image7.jpg', class_names, stride=stride, device=device)
-    boxes = filter_box(img_src, boxes)
-    imgs = crop_img(img_src, boxes)
-    classify_model, class_names_ = get_resnet_model(PATH + '/weights/classify.pt', PATH + '/data/spine.yaml', device=device)
-    LOGGER.info('Detection done. start classifying now...')
-    ret = [classify(classify_model, img, class_names_, device=device) for img in imgs]
-    LOGGER.info('Classification done.')
-    result = []
-    for data, box in zip(ret, boxes):
-        disease_type, conf = data[0], data[1]
-        label = box['label']
-        result.append((f'{label} {get_disease_str(disease_type)}', get_center(box)))
-        box['label'] += ' ' + get_disease_str(disease_type)
-        box['confidence'] *= conf[0] * conf[1]
-        
-    LOGGER.info(boxes)
-    plot_boxes(img_src, 1, boxes)
-    cv2.imwrite('test.jpg', img_src)
-    LOGGER.info('done.')
+def predict(args):
+    try:
+        device = torch.device(args.device)
+    except:
+        device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+    
+    detect_model, classify_model = None, None
+    cfgs = load_yaml(args.yaml)
+    if 'yolov6' in cfgs['detect']:
+        detect_model, stride, dclass_names = get_yolo_model(args.detect_model, args.yaml, device=device)
+    if 'resnet' in cfgs['classify']:
+        classify_model, cclass_names = get_resnet_model(args.classify_model, args.yaml, device=device)
+    
+    assert detect_model is not None and classify_model is not None, 'Invalid model path or file.'
+
+    #tqdm.set_description("Processing")
+    results = []
+    processor = tqdm(glob.glob(os.path.join(args.source, '**')))
+    processor.set_description('Processing')
+    for i, path in enumerate(processor):
+        img_src, boxes = detect(detect_model, path, dclass_names, stride=stride, device=device)
+        boxes = filter_box(img_src, boxes)
+        imgs = crop_img(img_src, boxes)
+
+        ret = [classify(classify_model, img, cclass_names, device=device) for img in imgs]
+        result = []
+        for data, box in zip(ret, boxes):
+            disease_type, conf = data[0], data[1]
+            label = box['label']
+            result.append((f'{label} {get_disease_str(disease_type)}', get_center(box)))
+            box['label'] += ' ' + get_disease_str(disease_type)
+            box['confidence'] *= conf[0] * conf[1]
+        results.append({'file_path': path, 'result': result})
+
+        if args.save_img:
+            plot_boxes(img_src, 1, boxes)
+            cv2.imwrite(os.path.join(args.save_dir, f'result_{i}.jpg'), img_src)
+
+    LOGGER.info('Done.')
+    LOGGER.info(results)
+    if args.save_txt:
+        with open(os.path.join(args.save_dir, 'result.txt')) as f:
+            for result in results:
+                f.write(str(result))
+    
+
+    #LOGGER.info(boxes)
+    #plot_boxes(img_src, 1, boxes)
+    #cv2.imwrite('test.jpg', img_src)
+    #LOGGER.info('done.')
 
 def check_and_init(args):
     '''check config files and device.'''
