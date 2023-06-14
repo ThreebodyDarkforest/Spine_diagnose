@@ -6,7 +6,7 @@ import numpy as np
 
 import torch
 import torch.backends.cudnn as cudnn
-from yolov6.utils.events import LOGGER
+from components.logger import LOGGER
 
 
 def get_envs():

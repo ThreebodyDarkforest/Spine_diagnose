@@ -9,6 +9,10 @@ is_coco: False
 nc: 13  # number of classes
 names: ['L1', 'L2', 'L3' ,'L4', 'L5', 'T12-L1', 'L1-L2', 'L2-L3', 'L3-L4', 'L4-L5', 'L5-S1', 'Anchor', 'All']  # class names
 
+# classifier configs
+# Please replace the folder to yours
+ctrain: /home/marcus/Learn/DL/Spine_diagnose/test/dataset/train
+cval: /home/marcus/Learn/DL/Spine_diagnose/test/dataset/val
 # disease Classes
 dnc: 6
 dnames: ['v1', 'v2', 'v3', 'v4', 'v5', 'None']

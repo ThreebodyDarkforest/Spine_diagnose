@@ -3,7 +3,8 @@ import numpy as np
 import PIL
 import torch.nn as nn
 
-from yolov6.utils.events import LOGGER, load_yaml
+from components.logger import LOGGER
+from yolov6.utils.events import load_yaml
 from yolov6.layers.common import DetectBackend
 from yolov6.data.data_augment import letterbox
 from yolov6.utils.nms import non_max_suppression

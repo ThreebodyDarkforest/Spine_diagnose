@@ -4,7 +4,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 from ..layers.common import RealVGGBlock, LinearAddBlock
 from torch.optim.sgd import SGD
-from yolov6.utils.events import LOGGER
+from components.logger import LOGGER
 
 
 def extract_blocks_into_list(model, blocks):

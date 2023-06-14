@@ -7,3 +7,4 @@ test/dataset/
 test/models/
 __pycache__
 runs/
+logs/

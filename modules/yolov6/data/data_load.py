@@ -8,7 +8,7 @@ import torch.distributed as dist
 from torch.utils.data import dataloader, distributed
 
 from .datasets import TrainValDataset
-from yolov6.utils.events import LOGGER
+from components.logger import LOGGER
 from yolov6.utils.torch_utils import torch_distributed_zero_first
 
 

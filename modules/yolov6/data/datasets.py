@@ -29,7 +29,7 @@ from .data_augment import (
     random_affine,
     mosaic_augmentation,
 )
-from yolov6.utils.events import LOGGER
+from components.logger import LOGGER
 
 
 # Parameters

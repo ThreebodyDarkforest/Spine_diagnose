@@ -6,7 +6,7 @@ import math
 import torch
 import torch.nn as nn
 
-from yolov6.utils.events import LOGGER
+from components.logger import LOGGER
 
 
 def build_optimizer(cfg, model):

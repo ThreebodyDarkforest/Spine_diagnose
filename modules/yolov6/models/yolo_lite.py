@@ -8,7 +8,7 @@ from yolov6.layers.common import *
 from yolov6.utils.torch_utils import initialize_weights
 from yolov6.models.reppan import *
 from yolov6.models.efficientrep import *
-from yolov6.utils.events import LOGGER
+from components.logger import LOGGER
 from yolov6.models.heads.effidehead_lite import Detect, build_effidehead_layer
 
 class Model(nn.Module):

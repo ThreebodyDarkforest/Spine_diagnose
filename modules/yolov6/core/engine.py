@@ -16,7 +16,6 @@ from torch.cuda import amp
 from torch.nn.parallel import DistributedDataParallel as DDP
 from torch.utils.tensorboard import SummaryWriter
 
-import tools.eval as eval
 from yolov6.data.data_load import create_dataloader
 from yolov6.models.yolo import build_model
 from yolov6.models.yolo_lite import build_model as build_lite_model
@@ -26,7 +25,9 @@ from yolov6.models.losses.loss_fuseab import ComputeLoss as ComputeLoss_ab
 from yolov6.models.losses.loss_distill import ComputeLoss as ComputeLoss_distill
 from yolov6.models.losses.loss_distill_ns import ComputeLoss as ComputeLoss_distill_ns
 
-from yolov6.utils.events import LOGGER, NCOLS, load_yaml, write_tblog, write_tbimg
+import yolov6.core.evaler as eval
+from components.logger import LOGGER
+from yolov6.utils.events import NCOLS, load_yaml, write_tblog, write_tbimg
 from yolov6.utils.ema import ModelEMA, de_parallel
 from yolov6.utils.checkpoint import load_state_dict, save_checkpoint, strip_optimizer
 from yolov6.solver.build import build_optimizer, build_lr_scheduler

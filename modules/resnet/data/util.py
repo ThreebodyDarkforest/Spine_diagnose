@@ -1,6 +1,7 @@
 import torchvision.transforms as transforms
 from PIL import Image
 import numpy as np
+import yaml
 
 data_transform = {
     'train': transforms.Compose([
@@ -23,3 +24,16 @@ def add_gaussian_noise(img, mean=0, std=1):
     noise = np.random.randn(img.size[0], img.size[1], 3) * std + mean
     noisy_img = np.array(img, dtype=np.float64) + noise
     return Image.fromarray(np.uint8(noisy_img))
+
+def load_yaml(file_path):
+    """Load data from yaml file."""
+    if isinstance(file_path, str):
+        with open(file_path, errors='ignore') as f:
+            data_dict = yaml.safe_load(f)
+    return data_dict
+
+
+def save_yaml(data_dict, save_path):
+    """Save data to yaml file"""
+    with open(save_path, 'w') as f:
+        yaml.safe_dump(data_dict, f, sort_keys=False)
