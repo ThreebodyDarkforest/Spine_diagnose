@@ -8,7 +8,7 @@ def load_pretrained(weights, class_num, model_type: str = 'resnet50', device='cp
     model.load_state_dict(ckpt)
     inchannel = model.fc.in_features
     model.fc = nn.Linear(inchannel, class_num * 2)
-    return model
+    return model.to(device)
 
 def load_model(weights, class_num, model_type: str = 'resnet50', device='cpu'):
     ckpt = torch.load(weights, map_location=device)
@@ -16,7 +16,7 @@ def load_model(weights, class_num, model_type: str = 'resnet50', device='cpu'):
     inchannel = model.fc.in_features
     model.fc = nn.Linear(inchannel, class_num * 2)
     model.load_state_dict(ckpt)
-    return model
+    return model.to(device)
 
 def get_model(model_type: str = 'resnet50', device='cpu'):
     if model_type == 'resnet50':
