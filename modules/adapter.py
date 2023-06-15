@@ -1,7 +1,8 @@
 import torch
 from detector import detect, get_yolo_model
-from util import filter_box, plot_boxes, crop_img, get_center
+from util import filter_box, plot_boxes, crop_img, get_center, IMG_EXT
 from classifier import get_resnet_model, classify
+from evaler import evalutate
 import cv2, os
 from typing import Union, List
 from components.logger import LOGGER
@@ -16,6 +17,7 @@ from util import Config
 import torch.nn as nn
 import glob
 from tqdm import tqdm
+import json
 
 from yolov6.core.engine import Trainer
 from yolov6.utils.events import save_yaml, load_yaml
@@ -50,9 +52,10 @@ def predict(args):
     
     assert detect_model is not None and classify_model is not None, 'Invalid model path or file.'
 
-    #tqdm.set_description("Processing")
     results = []
-    processor = tqdm(glob.glob(os.path.join(args.source, '**')))
+    img_files = []
+    [img_files.extend(glob.glob(os.path.join(args.source, '**.' + ext))) for ext in IMG_EXT]
+    processor = tqdm(img_files)
     processor.set_description('Processing')
     for i, path in enumerate(processor):
         img_src, boxes = detect(detect_model, path, dclass_names, stride=stride, device=device)
@@ -62,11 +65,19 @@ def predict(args):
         ret = [classify(classify_model, img, cclass_names, device=device) for img in imgs]
         result = []
         for data, box in zip(ret, boxes):
-            disease_type, conf = data[0], data[1]
+            disease_type, conf, logits = data[0], data[1], data[2]
             label = box['label']
-            result.append((f'{label} {get_disease_str(disease_type)}', get_center(box)))
-            box['label'] += ' ' + get_disease_str(disease_type)
+            #box['label'] += ' ' + get_disease_str(disease_type)
+            box['dlabel'] = get_disease_str(disease_type)
+            box['logits'] = [x * box['confidence'] for x in logits]
             box['confidence'] *= conf[0] * conf[1]
+            result.append({
+                    "bone_type": label,
+                    "disease_type": get_disease_str(disease_type), 
+                    "coord": get_center(box),
+                    "logits": box['logits'],
+                    "confidence": box['confidence'],
+                })
         results.append({'file_path': path, 'result': result})
 
         if args.save_img:
@@ -74,17 +85,35 @@ def predict(args):
             cv2.imwrite(os.path.join(args.save_dir, f'result_{i}.jpg'), img_src)
 
     LOGGER.info('Done.')
-    LOGGER.info(results)
+    LOGGER.debug(results)
     if args.save_txt:
         with open(os.path.join(args.save_dir, 'result.txt')) as f:
             for result in results:
                 f.write(str(result))
     
+    return results
 
-    #LOGGER.info(boxes)
-    #plot_boxes(img_src, 1, boxes)
-    #cv2.imwrite('test.jpg', img_src)
-    #LOGGER.info('done.')
+def eval(args):
+    results = predict(args)
+    cfgs = load_yaml(args.yaml)
+
+    # extract class_to_num_dict
+    num_dict = {}
+    [num_dict.update({name: i}) for i, name in enumerate(cfgs['names'])]
+    #dnum_dict = {}
+    #[dnum_dict.update({name: i}) for i, name in enumerate(cfgs['dnames'])]
+
+    # preprocess source data
+    label_path = sorted(glob.glob(os.path.join(args.source, '**.json')))
+    results = sorted(results, key=lambda x : x['file_path'])
+    labels = []
+    for path in label_path:
+        with open(path, 'r') as f:
+            labels.append(json.loads(f.read()))
+
+    eval_res = evalutate(results, labels, num_dict)
+    LOGGER.info(f'Evaluation result: {eval_res}')
+    return eval_res
 
 def check_and_init(args):
     '''check config files and device.'''
@@ -132,6 +161,7 @@ def check_and_init(args):
 
     return cfg, device, args
 
+# TODO: Move this two functions to other files.
 def train_yolov6(args):
     '''main function of training'''
     cfg, device, args = check_and_init(args)

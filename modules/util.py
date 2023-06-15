@@ -27,6 +27,8 @@ bone_asc = {
     'All': 12,
 }
 
+IMG_EXT = ["jpg", "jpeg", "png", "bmp"]
+
 def get_skeleton(img, roi_box, scale=0.5):
     img = img[roi_box[0][1]:roi_box[1][1], roi_box[0][0]:roi_box[1][0]]
     gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
@@ -48,6 +50,9 @@ def get_skeleton(img, roi_box, scale=0.5):
 
 def get_center(box):
     return (box['xyxy'][0][0] + box['xyxy'][1][0]) / 2, (box['xyxy'][0][1] + box['xyxy'][1][1]) / 2
+
+def distance(p1, p2):
+    return int(abs(p1[0] - p2[0]) + abs(p1[1] - p2[1]))
 
 def get_size(box):
     return (box['xyxy'][1][0] - box['xyxy'][0][0], box['xyxy'][1][1] - box['xyxy'][0][1])

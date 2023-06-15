@@ -57,7 +57,9 @@ def classify(model: nn.Module, img: Union[str, np.ndarray], class_names: List[st
         logits = model(img)
         predict_y = (torch.max(logits[:, :6], dim=1)[1].item(), torch.max(logits[:, 6:], dim=1)[1].item())
         label = class_names[predict_y[0]], class_names[predict_y[1]]
-        return label, (torch.max(F.softmax(logits[:, :6], dim=1), dim=1)[0].item(), torch.max(F.softmax(logits[:, 6:], dim=1), dim=1)[0].item())
+        conf = torch.concat((F.softmax(logits[:, :6], dim=1), F.softmax(logits[:, 6:], dim=1)), dim=1).tolist()[0]
+        precision = (torch.max(F.softmax(logits[:, :6], dim=1), dim=1)[0].item(), torch.max(F.softmax(logits[:, 6:], dim=1), dim=1)[0].item())
+        return label, precision, conf
     else:
         pass
 
