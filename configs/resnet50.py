@@ -1,7 +1,7 @@
 solver = dict(
     optim='Adam',
     lr_scheduler='Cosine',
-    lr=1e-4,
+    lr=5e-5,
 )
 
 saver = dict(

@@ -1,6 +1,6 @@
 from resnet.data import datasets
 from resnet.data.util import data_transform
-from .util import get_model
+from .util import get_model, load_model
 import torch
 import torch.nn as nn
 import torch.optim as optim
@@ -10,11 +10,14 @@ from components.logger import LOGGER
 
 class Trainer():
     def __init__(self, train_dir: str, val_dir: str, model_name: str = 'resnet50', num_workers: int = 0, \
-                 optimizer: str = 'Adam', batch_size: int = 32, device='cpu') -> None:
+                 optimizer: str = 'Adam', batch_size: int = 32, model: nn.Module = None, device='cpu') -> None:
         assert optimizer in ['SGD', 'Adam'], 'Invalid optimizer.'
         self.train_data = get_dataloader(train_dir, batch_size, num_workers=num_workers)
         self.eval_data = get_dataloader(val_dir, batch_size, num_workers=num_workers)
-        self.model = get_model(model_name, device).to(device)
+        if model is None:
+            self.model = get_model(model_name, device)
+        else:
+            self.model = model.to(device)
         self.device = device
         self.optim = optimizer
         self.model_name = model_name
@@ -27,7 +30,7 @@ class Trainer():
                     if self.optim == 'Adam' else optim.SGD(self.model.parameters(), lr=lr)
         for epoch in range(max_epochs):
             self.model.train()
-            print(f'epoch {epoch + 1}:')
+            print(f'epoch {epoch + 1}/{max_epochs}:')
             train_acc = 0.0
             for step, data in enumerate(self.train_data):
                 imgs, type_ids, labels = data
@@ -52,6 +55,7 @@ class Trainer():
             LOGGER.info(f'\t[epoch {epoch}] val_acc: {val_acc} train_loss: {running_loss / len(self.train_data)}')
             if max_acc < val_acc and save_best:
                 LOGGER.info(f'Saving best checkpoint to {save_path}')
+                max_acc = val_acc
                 torch.save(self.model.state_dict(), os.path.join(save_path, f'{self.model_name}_best.pt'))
             if (epoch + 1) % save_every == 0 and save:
                 LOGGER.info(f'Saving checkpoint to {save_path}')

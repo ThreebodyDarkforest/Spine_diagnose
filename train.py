@@ -49,6 +49,8 @@ def get_args_parser(add_help=True):
     parser.add_argument('--height', type=int, default=None, help='image height of model input')
     parser.add_argument('--width', type=int, default=None, help='image width of model input')
 
+    parser.add_argument('--pretrained', type=str, default=None, help='load from pretrained model.')
+
     return parser
 
 

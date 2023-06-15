@@ -57,11 +57,12 @@ def distance(p1, p2):
 def get_size(box):
     return (box['xyxy'][1][0] - box['xyxy'][0][0], box['xyxy'][1][1] - box['xyxy'][0][1])
 
-def crop_img(img, boxes):
+def crop_img(img, boxes, padding: int = 2):
     crop_imgs = []
     for box in boxes:
         p1, p2 = box['xyxy'][0], box['xyxy'][1]
-        crop_imgs.append(img[int(p1[0]) - 2 : int(p2[0]) + 2, int(p1[1]) - 2 : int(p2[1]) + 2])
+        crop_imgs.append(img[int(p1[0]) - padding : int(p2[0]) + padding, \
+                             int(p1[1]) - padding : int(p2[1]) + padding])
     return crop_imgs
 
 def filter_box(img, boxes):

@@ -60,7 +60,7 @@ def predict(args):
     for i, path in enumerate(processor):
         img_src, boxes = detect(detect_model, path, dclass_names, stride=stride, device=device)
         boxes = filter_box(img_src, boxes)
-        imgs = crop_img(img_src, boxes)
+        imgs = crop_img(img_src, boxes, 4)
 
         ret = [classify(classify_model, img, cclass_names, device=device) for img in imgs]
         result = []
@@ -200,9 +200,14 @@ def train_resnet(args):
     save_path = os.path.join(args.output_dir, f'{args.model}_{get_date_str()}')
     if not os.path.exists(save_path):
         os.makedirs(save_path)
+    model = None
+
+    if args.pretrained is not None:
+        model, class_names = get_resnet_model(args.pretrained, args.data_path, pretrained=args.pretrained)
+    
     trainer = resn_Trainer(data_cfg['ctrain'], data_cfg['cval'],
                            data_cfg['classify'], args.workers,
-                           cfg.solver.optim, args.batch_size, device)
+                           cfg.solver.optim, args.batch_size, model, device)
 
     trainer.train(args.epochs, cfg.solver.lr, cfg.saver.save,
                   cfg.saver.save_every, cfg.saver.save_best, save_path)

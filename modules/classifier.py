@@ -13,12 +13,16 @@ from resnet.core import util as resnet_util
 
 transform = data_transform['val']
 
-def get_resnet_model(weights, config_path, half: bool = False, device = 'cpu'):
+def get_resnet_model(weights, config_path, half: bool = False, \
+                     pretrained: bool = False, device = 'cpu'):
     assert '.pt' in weights, 'Invalid model path.'
     _dict = load_yaml(config_path)
     model_type = _dict['classify']
     class_names, class_num = _dict['dnames'], _dict['dnc']
-    model = resnet_util.load_model(weights, class_num, model_type, device).to(device)
+    if not pretrained:
+        model = resnet_util.load_model(weights, class_num, model_type, device)
+    else:
+        model = resnet_util.load_pretrained(weights, class_num, model_type, device)
     return model, class_names
 
 def classify(model: nn.Module, img: Union[str, np.ndarray], class_names: List[str], \
