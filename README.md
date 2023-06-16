@@ -138,6 +138,8 @@ python train.py --model resnet50 --batch 32 --epochs 10 --conf configs/resnet50.
 
 训练完毕后，您可以在 `Spine_diagnose/runs/train` 查看您的训练结果。
 
+值得一提的是，您可以通过配置 `--pretrained` 选项来指定是否使用预训练模型。
+
 > 注意：当您希望使用自己训练的模型进行推理或性能评估时，需要在代码运行参数中配置 `--detect` 和 `--classify` 为您的模型存放路径。
 
 ## 性能评估
