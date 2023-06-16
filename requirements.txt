@@ -20,3 +20,4 @@ thop  # FLOPs computation
 # Requirements for Spine_diagnose
 SimpleITK
 scikit-image>=0.21.0
+gradio>=3.34.0
