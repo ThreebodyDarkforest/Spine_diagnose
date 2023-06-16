@@ -1,4 +1,4 @@
-import os, copy
+import os, copy, json
 import glob
 import SimpleITK as sitk
 import pandas as pd
@@ -7,8 +7,13 @@ import numpy as np
 from typing import List
 import cv2
 from matplotlib.patches import Rectangle
+from tqdm import tqdm
+
+PATH = os.path.dirname(os.path.abspath(__file__))
+PATH = os.path.join(PATH, 'datasets')
 
 class_names = ['L1', 'L2', 'L3' ,'L4', 'L5', 'T12-L1', 'L1-L2', 'L2-L3', 'L3-L4', 'L4-L5', 'L5-S1']
+disease_name = ['v1', 'v2', 'v3', 'v4', 'v5', 'None']
 
 num_class = {
     "L1" : 0,
@@ -110,10 +115,19 @@ def postprocess(img, coord: List[int], box_size: List[float]):
 
 def get_disease_type(tag):
     disease = tag['vertebra'] if 'vertebra' in \
-              tag.keys() else all_gts[i]['tag']['disc']
-    disease = disease if disease != '' else all_gts[i]['tag']['disc']
+              tag.keys() else tag['disc']
+    disease = disease if disease != '' else tag['disc']
     disease = [x for x in disease.split(',') if x != '']
     return disease
+
+def get_disease_str(disease):
+    disease_str = ''
+    if len(disease) <= 1: disease.append(5)
+    if len(disease) <= 1: disease.append(5)
+    disease_label = [disease_name[x] for x in disease]
+    if disease_label[0] != 'None': disease_str += disease_label[0]
+    if disease_label[1] != 'None': disease_str += f', {disease_label[1]}'
+    return disease_str
 
 def get_rgb_image(path):
     filename = os.path.splitext(os.path.basename(path))[0]
@@ -122,23 +136,24 @@ def get_rgb_image(path):
     img = np.array([dicom2array(os.path.join(filedir, f'image{number + _}.dcm')) for _ in range(-1, 2)])
     return img.transpose((1, 2, 0))
 
-if __name__ == '__main__':
+def main(annotation_file, file_dir, work_type='train'):
     # 先处理标签和图像的对应关系 studyUid,seriesUid,instanceUid,annotation
+    print(f'Loading {work_type} data...')
     annotation_info = pd.DataFrame(columns=('studyUid', 'seriesUid', 'instanceUid', 'annotation'))
-    json_df = pd.read_json('./lumbar_train51_annotation.json')
+    json_df = pd.read_json(annotation_file)
     for idx in json_df.index:
-        studyUid = json_df.loc[idx, "studyUid"]
+        studyUid = json_df.loc[idx, 'studyUid']
         seriesUid = json_df.loc[idx, "data"][0]['seriesUid']
         instanceUid = json_df.loc[idx, "data"][0]['instanceUid']
         annotation = json_df.loc[idx, "data"][0]['annotation']
         row = pd.Series(
             {'studyUid': studyUid, 'seriesUid': seriesUid, 'instanceUid': instanceUid, 'annotation': annotation})
         annotation_info = annotation_info._append(row, ignore_index=True)
-    dcm_paths = glob.glob(os.path.join('./train', "**", "**.dcm"))
+    dcm_paths = glob.glob(os.path.join(file_dir, "**", "**.dcm"))
     # 'studyUid','seriesUid','instanceUid'
     tag_list = ['0020|000d', '0020|000e', '0008|0018']  # 好像所有的图片都是这个
     dcm_info = pd.DataFrame(columns=('dcmPath', 'studyUid', 'seriesUid', 'instanceUid'))
-    for dcm_path in dcm_paths:
+    for dcm_path in tqdm(dcm_paths):
         try:
             studyUid, seriesUid, instanceUid = dicom_metainfo(dcm_path, tag_list)
             row = pd.Series(
@@ -151,25 +166,27 @@ if __name__ == '__main__':
     #print(result)
     # results里的每一行，行索引即为该病人（如study41）中、被标注了的那张图像的名称（如image17.dcm）。
     # 每一行中的值，代表椎骨、椎间盘等金标准标签。具体见“标签数据结构示意图.jpg”。
-    path = './images/train'
-    label_path = './labels'
-    view_path = './views'
-    precise_label_path = './precise_labels'
+    path = os.path.join(PATH, 'detect', 'images', work_type)
+    label_path = os.path.join(PATH, 'detect', 'labels', work_type)
+    view_path = os.path.join(PATH, 'views')
+    precise_label_path = os.path.join(PATH, 'classify')
+    eval_path = os.path.join(PATH, 'eval')
 
-    train_label_path = os.path.join(label_path, os.path.basename(path))
     precise_path = os.path.join(precise_label_path, os.path.basename(path))
     if not os.path.exists(path):
         os.makedirs(path)
-    if not os.path.exists(train_label_path):
-        os.makedirs(train_label_path)
+    if not os.path.exists(label_path):
+        os.makedirs(label_path)
     if not os.path.exists(view_path):
         os.makedirs(view_path)
     if not os.path.exists(precise_path):
         os.makedirs(precise_path)
+    if not os.path.exists(eval_path):
+        os.makedirs(eval_path)
 
     # 为yolov6生成标注数据
-
-    for ind, val in zip(result.index, result.values):
+    print(f'Generating {work_type} data...')
+    for ind, val in tqdm(list(zip(result.index, result.values))):
         #print(ind, val)
         dcm_path = ind
         img_x = dicom2array(dcm_path)
@@ -181,24 +198,28 @@ if __name__ == '__main__':
         fig, ax = plt.subplots()
         plt.imshow(img_x, cmap='gray')
         save_path = os.path.join(path, name + '.jpg')
-        label_path = os.path.join(train_label_path, name + '.txt')
+        _label_path = os.path.join(label_path, name + '.txt')
         label_txt = ''
         preview_path = os.path.join(view_path, name + '.jpg')
         plt.imsave(save_path, img_x, cmap='gray')
         all_gts = sorted(all_gts, key=lambda x : x['coord'][1], reverse=True)
+
+        eval_img_path = os.path.join(eval_path, name + '.jpg')
+        plt.imsave(eval_img_path, img_x, cmap='gray')
         
         # 生成全局定位锚
         min_x, max_x = min([x['coord'][0] for x in all_gts]), max([x['coord'][0] for x in all_gts])
         min_y, max_y = all_gts[-1]['coord'][1], all_gts[0]['coord'][1]
         length = np.mean([all_gts[i]['coord'][1] - all_gts[i-1]['coord'][1] for i in range(1, len(all_gts))])
         anchor_x, anchor_y = all_gts[0]['coord'][0] - 0.7 * length, all_gts[0]['coord'][1] - 0.7 * length
-        anchor_w, anchor_h = regress(preprocess(img_x), coords, 'vertebra')
+        anchor_w, anchor_h = regress(preprocess(img_x), (anchor_x, anchor_y), 'vertebra')
         anchor_rect = Rectangle((int(anchor_x - anchor_w / 2), int(anchor_y - anchor_h / 2)), anchor_w, anchor_h, linewidth=1, edgecolor='g', facecolor='none')
         ax.add_patch(anchor_rect)
         class_id, center_x, center_y, box_w, box_h = num_class['Anchor'], anchor_x / width, anchor_y / height, anchor_w / width, anchor_h / height
         label_txt += f'{class_id} {center_x} {center_y} {box_w} {box_h}\n'
 
         box_axis = []
+        json_info = []
         # 生成其他标注框
         for i in range(len(all_gts)):
             coords = all_gts[i]['coord']
@@ -234,6 +255,15 @@ if __name__ == '__main__':
                 f.write(precise_txt)
             plt.imsave(precise_file_path, postprocess(img_x, coords, [x, y]), cmap='gray')
             
+            # 生成用于性能评估的图像和数据
+            disease_label = get_disease_str(disease_type)
+            
+            json_info.append({"bone_type": vertebrae_or_disc_name, "disease_type": disease_label, "coord": coords})
+        
+        eval_label_path = os.path.join(eval_path, name + '.json')
+        with open(eval_label_path, 'w') as f:
+            f.write(json.dumps(json_info))
+
         # 生成整体标注框
         min_x, min_y = np.min(box_axis, axis=0)
         max_x, max_y = np.max(box_axis, axis=0)
@@ -243,7 +273,13 @@ if __name__ == '__main__':
         class_id, center_x, center_y, box_w, box_h = num_class['All'], (min_x + all_w / 2) / width, (min_y + all_h / 2) / height, (max_x - min_x) / width, (max_y - min_y) / height
         label_txt += f'{class_id} {center_x} {center_y} {box_w} {box_h}\n'
 
-        with open(label_path, 'w', encoding='utf-8') as f:
+        with open(_label_path, 'w', encoding='utf-8') as f:
             f.write(label_txt)
         plt.savefig(preview_path)
         plt.cla()
+        plt.close()
+    print('Done.')
+
+if __name__ == '__main__':
+    main('./lumbar_train150_annotation.json', './lumbar_train150', 'train')
+    main('./lumbar_train51_annotation.json', './train', 'val')

@@ -10,7 +10,7 @@ from yolov6.data.data_augment import letterbox
 from yolov6.utils.nms import non_max_suppression
 from yolov6.core.inferer import Inferer
 
-from typing import List, Optional
+from typing import List, Optional, Union
 
 def check_img_size(img_size, s=32, floor=0):
   def make_divisible( x, divisor):
@@ -37,6 +37,8 @@ def process_image(path, img_size, stride, half):
     assert img_src is not None, f'Invalid image: {path}'
   except Exception as e:
     LOGGER.warn(e)
+  if isinstance(path, np.ndarray):
+     img_src = path.copy()
   image = letterbox(img_src, img_size, stride=stride)[0]
 
   # Convert
@@ -66,7 +68,7 @@ def get_yolo_model(weights_path, config_path, half: bool = False, device = 'cpu'
 def get_rcnn_model():
    pass
 
-def detect(model: nn.Module, img_path: str, class_names: List[str], model_type: str = 'yolo', hide_labels: bool = False, \
+def detect(model: nn.Module, img_path: Union[str, np.ndarray], class_names: List[str], model_type: str = 'yolo', hide_labels: bool = False, \
            stride = None, hide_conf: bool = False, img_size:int = 640, conf_thres: float =.25, device='cpu', \
            iou_thres: float =.45, max_det:int =  1000, agnostic_nms: bool = False, half:bool = False, plot = False):
     '''Detect the vertebrae and intervertebral discs present in the image.

@@ -1,6 +1,6 @@
-# Please insure that your custom_dataset are put in same parent dir with YOLOv6_DIR
-train: /home/marcus/Learn/DL/YOLOv6/data/spine/images/train # train images
-val: /home/marcus/Learn/DL/YOLOv6/data/spine/images/val # val images
+# Please insure that your custom_dataset are put in same parent dir with SPINE_DIAGNOSE_DIR
+train: /home/marcus/Learn/DL/YOLOv6/data/detect/images/train # train images
+val: /home/marcus/Learn/DL/YOLOv6/data/detect/images/val # val images
 # test: ../custom_dataset/images/test # test images (optional)
 
 # whether it is coco dataset, only coco dataset should be set to True.
@@ -10,9 +10,9 @@ nc: 13  # number of classes
 names: ['L1', 'L2', 'L3' ,'L4', 'L5', 'T12-L1', 'L1-L2', 'L2-L3', 'L3-L4', 'L4-L5', 'L5-S1', 'Anchor', 'All']  # class names
 
 # classifier configs
-# Please replace the folder to yours
-ctrain: /home/marcus/Learn/DL/Spine_diagnose/test/dataset/train
-cval: /home/marcus/Learn/DL/Spine_diagnose/test/dataset/val
+# Please replace the classiy data folder to yours
+ctrain: /home/marcus/Learn/DL/Spine_diagnose/test/classify/train
+cval: /home/marcus/Learn/DL/Spine_diagnose/test/classify/val
 # disease Classes
 dnc: 6
 dnames: ['v1', 'v2', 'v3', 'v4', 'v5', 'None']

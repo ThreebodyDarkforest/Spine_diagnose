@@ -22,7 +22,25 @@ Spinal Disease Dataset脊柱疾病数据集详情请见[链接](https://tianchi.
 
 ## 快速开始
 
-由于本项目暂不完善，您需要通过以下方式运行测试代码。
+本项目提供了快速部署模型推理的方式。
+
+- 下载模型文件
+
+您需要首先通过以下链接下载本项目需要的文件，并将它们存放在 `Spine_diagnose/weights` 目录下。
+
+权重文件下载链接：https://mega.nz/file/sHVQGQLI#oiD6etmKEnG4ZQZBztNcoa3WWRYIcsbpT2I3CNsOh4s
+
+- 获取结果
+
+本项目提供了一键运行的网页Demo，您可以直接运行 `webui.py` 并在浏览器打开 `http://localhost:7860` 获取交互式页面。
+
+```
+python webui.py
+```
+
+## 推理
+
+我们建议您通过如下方式运行模型推理。
 
 - 克隆仓库
 
@@ -43,31 +61,96 @@ pip install -r requirements.txt
 
 权重文件下载链接：https://mega.nz/file/sHVQGQLI#oiD6etmKEnG4ZQZBztNcoa3WWRYIcsbpT2I3CNsOh4s
 
-- 运行测试代码
+- 运行推理获取结果
 
-需要注意的是，我们尚未完成真正用于测试的代码。一个可运行的测试代码位于 `Spine_diagnose/modules/adapter.py`，您只需要直接运行它：
-
-```
-python modules/adapter.py
-```
-
-- 获取结果
-
-如果没有发生错误，您将看到类似下面的内容。
+直接运行推理（无结果）：
 
 ```
-$ python modules/adapter.py
-
-Loading checkpoint from /home/marcus/Learn/DL/Spine_diagnose/weights/detect.pt
-
-Fusing model...
-Detection done. start classifying now...
-/home/marcus/Learn/DL/Spine_diagnose/modules/classifier.py:41: UserWarning: Implicit dimension choice for softmax has been deprecated. Change the call to include dim=X as an argument.
-  return label, (torch.max(F.softmax(logits[:, :6]), dim=1)[0].item(), torch.max(F.softmax(logits[:, 6:]), dim=1)[0].item())
-Classification done.
-[{'xyxy': ((125, 179), (151, 191)), 'label': 'L5-S1 v2', 'class_num': 10, 'confidence': 0.5239071628414889}, {'xyxy': ((117, 162), (149, 184)), 'label': 'L5 v2', 'class_num': 4, 'confidence': 0.7836284251675887}, {'xyxy': ((118, 154), (144, 166)), 'label': 'L4-L5 v2', 'class_num': 9, 'confidence': 0.5585730742222171}, {'xyxy': ((113, 134), (147, 159)), 'label': 'L4 v1', 'class_num': 3, 'confidence': 0.4727259708481813}, {'xyxy': ((118, 128), (144, 140)), 'label': 'L3-L4 v2', 'class_num': 8, 'confidence': 0.6851188511207023}, {'xyxy': ((116, 109), (149, 135)), 'label': 'L3 v2', 'class_num': 2, 'confidence': 0.8005590789324253}, {'xyxy': ((123, 102), (148, 114)), 'label': 'L2-L3 v2', 'class_num': 7, 'confidence': 0.7152538218377865}, {'xyxy': ((122, 84), (153, 107)), 'label': 'L2 v2', 'class_num': 1, 'confidence': 0.7543958538411826}, {'xyxy': ((128, 78), (153, 91)), 'label': 'L1-L2 v1', 'class_num': 6, 'confidence': 0.4898075383329039}, {'xyxy': ((127, 61), (160, 84)), 'label': 'L1 v2', 'class_num': 0, 'confidence': 0.7516732347548739}, {'xyxy': ((132, 55), (160, 68)), 'label': 'T12-L1 v2', 'class_num': 5, 'confidence': 0.78073688683909}]
-done.
+python predict.py --source img_path / img_dir --device 0
 ```
+
+如果您希望获取推理结果的详细内容，我们提供了如下两种方式
+
+```
+# 保存推理结果文本
+python predict.py --source img_path / img_dir --save-dir runs/inference --save-txt --device 0
+```
+
+```
+# 保存推理结果图像（包含检测框和分类结果）
+python predict.py --source img_path / img_dir --save-dir runs/inference --save-img --device 0
+```
+
+当然，您也可以组合上述两种方法，同时保存两种推理结果。
+
+> 如果需要查看运行时结果，您可以查看 `Spine_diagnose/log` 下的日志。同时，您也可以通过设置环境变量 `RANK` 为 `1` 来将日志模式设为 `DEBUG` 以获取更丰富的信息。
+
+## 训练
+
+本项目需要两个模型权重才能完整运行，它们分别对应检测和分类。下面分别是训练检测器（YOLOv6）和分类器（Resnet50）的例子，您也可以尝试修改代码并替换其他模型。
+
+- 准备数据集
+
+在开始训练之前，需要先准备数据集。我们推荐您从[网盘链接]()下载已经预处理过的开箱即用的数据集。下载好后进行解压，您将看到以下内容。
+
+```
+.
+├── eval
+├── detect
+├── classify
+└── views
+```
+
+- `eval`：用于性能评估的数据，在 `eval.py` 使用
+- `detect`：yolo格式的训练数据，用于训练检测器
+- `classify`：用于训练分类器
+- `views`：数据集的可视化结果，您可以查看它们
+
+将它们移动到项目的任意目录下，并记下它。
+
+接下来，按照之前记下的信息修改 `Spine_diagnose/data/spine.yaml` 中的内容。注意，您只需要修改文件中的路径。
+
+> 您也可以从[链接](https://tianchi.aliyun.com/dataset/79463)下载原始数据集并使用我们提供的工具提取有效数据（需要补充网盘链接，官网数据集对不上）。具体方法请参阅[从原始数据集中提取数据](./doc/data_extract.md)。
+
+### 训练 YOLOv6
+
+通过以下代码训练 yolov6：
+
+```
+python train.py --model yolov6 --batch 32 --conf configs/yolov6s_finetune.py --device 0
+```
+
+其中，`--conf` 选项的内容是可另外配置的，您可以查看 `Spine_diagnose/configs` 目录来了解更多信息。
+
+需要指出，本项目的 yolov6 训练配置参数与 YOLOv6 官方代码仓相同（包括 `train.py` 的参数）。
+
+训练完毕后，您可以在 `Spine_diagnose/runs/train` 查看您的训练结果。
+
+> 您可以使用 `python train.py --help` 查看参数的具体配置。
+
+### 训练 Resnet50
+
+通过以下代码训练 resnet50：
+
+```
+python train.py --model resnet50 --batch 32 --epochs 10 --conf configs/resnet50.py
+```
+
+训练完毕后，您可以在 `Spine_diagnose/runs/train` 查看您的训练结果。
+
+> 注意：当您希望使用自己训练的模型进行推理或性能评估时，需要在代码运行参数中配置 `--detect` 和 `--classify` 为您的模型存放路径。
+
+## 性能评估
+
+您可以通过以下方式进行性能评估：
+
+```
+python eval.py --source eval_dir --device 0
+```
+
+运行完毕后，您将获取模型在测试数据上的准确率、召回率和f1分数指标。
+
+> 注意：此处的 `--source` 与 `predict.py` 中略有不同。请将运行参数中的 `--source` 设置为您存放性能评估数据 `eval` 的路径。
 
 ## 项目介绍
 

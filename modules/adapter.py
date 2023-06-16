@@ -52,9 +52,15 @@ def predict(args):
     
     assert detect_model is not None and classify_model is not None, 'Invalid model path or file.'
 
+    if not os.path.exists(args.save_dir):
+        os.makedirs(args.save_dir)
+
     results = []
     img_files = []
-    [img_files.extend(glob.glob(os.path.join(args.source, '**.' + ext))) for ext in IMG_EXT]
+    if os.path.isdir(args.source):
+        [img_files.extend(glob.glob(os.path.join(args.source, '**.' + ext))) for ext in IMG_EXT]
+    else:
+        img_files.append(args.source)
     processor = tqdm(img_files)
     processor.set_description('Processing')
     for i, path in enumerate(processor):
