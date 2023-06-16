@@ -1,7 +1,7 @@
 import torch
 from detector import detect, get_yolo_model
 from util import filter_box, plot_boxes, crop_img, get_center, IMG_EXT
-from classifier import get_resnet_model, classify, get_vit_model
+from classifier import get_resnet_model, classify, get_vit_model, get_swin_model
 from evaler import evalutate
 import cv2, os
 from typing import Union, List
@@ -26,6 +26,7 @@ from yolov6.utils.general import increment_name, find_latest_checkpoint, check_i
 
 from resnet.core.trainer import Trainer as resn_Trainer
 from vit.core.trainer import Trainer as vit_Trainer
+from swin_trans.core.trainer import Trainer as swin_Trainer
 
 PATH = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
@@ -52,6 +53,8 @@ def predict(args):
         classify_model, cclass_names = get_resnet_model(args.classify_model, args.yaml, device=device)
     if 'ViT' in cfgs['classify']:
         classify_model, cclass_names = get_vit_model(args.classify_model, args.yaml, device=device)
+    if 'swin' in cfgs['classify']:
+        classify_model, cclass_names = get_swin_model(args.classify_model, args.yaml, device=device)
     
     assert detect_model is not None and classify_model is not None, 'Invalid model path or file.'
 
@@ -245,6 +248,30 @@ def train_vit(args):
     trainer.train(args.epochs, cfg.solver.lr, cfg.saver.save,
                   cfg.saver.save_every, cfg.saver.save_best, save_path)
 
+def train_swin(args):
+    cfg = Config.fromfile(args.conf_file)
+    LOGGER.info(f'training args are: {args}\n')
+    try:
+        device = torch.device(args.device)
+    except:
+        device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
+    data_cfg = load_yaml(args.data_path)
+
+    save_path = os.path.join(args.output_dir, f'{args.model}_{get_date_str()}')
+    if not os.path.exists(save_path):
+        os.makedirs(save_path)
+    model = None
+
+    if args.pretrained is not None:
+        model, class_names = get_swin_model(args.pretrained, args.data_path, pretrained=args.pretrained)
+    
+    trainer = swin_Trainer(data_cfg['ctrain'], data_cfg['cval'], data_cfg['dnc'],
+                           args.model, args.workers,
+                           cfg.solver.optim, args.batch_size, model, device)
+
+    trainer.train(args.epochs, cfg.solver.lr, cfg.saver.save,
+                  cfg.saver.save_every, cfg.saver.save_best, save_path)
+
 def train(args):
     # Setup
     args.local_rank, args.rank, args.world_size = get_envs()
@@ -254,6 +281,8 @@ def train(args):
         train_resnet(args)
     if 'ViT' in args.model:
         train_vit(args)
+    if 'swin' in args.model:
+        train_swin(args)
     else:
         raise ValueError('Invalid type of model.')
 
