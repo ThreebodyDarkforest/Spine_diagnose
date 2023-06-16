@@ -4,6 +4,7 @@
 
 weights/
 test/dataset/
+test/classify/
 test/models/
 __pycache__
 runs/

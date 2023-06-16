@@ -26,3 +26,9 @@ def get_model(model_type: str = 'resnet50', device='cpu'):
     else:
         model = torchvision.models.resnet18()
     return model.to(device)
+
+def get_raw_model(model_type: str = 'ViT-B-32', class_num: int = 6, device='cpu'):
+    model = get_model(model_type)
+    inchannel = model.fc.in_features
+    model.fc = nn.Linear(inchannel, class_num * 2)
+    return model.to(device)

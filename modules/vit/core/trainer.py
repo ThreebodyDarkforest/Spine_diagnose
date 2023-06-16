@@ -9,7 +9,7 @@ import os
 from components.logger import LOGGER
 
 class Trainer():
-    def __init__(self, train_dir: str, val_dir: str, class_num: int = 6, model_name: str = 'resnet50', num_workers: int = 0, \
+    def __init__(self, train_dir: str, val_dir: str, class_num: int = 6, model_name: str = 'ViT-B-32', num_workers: int = 0, \
                  optimizer: str = 'Adam', batch_size: int = 32, model: nn.Module = None, device='cpu') -> None:
         assert optimizer in ['SGD', 'Adam'], 'Invalid optimizer.'
         self.train_data = get_dataloader(train_dir, batch_size, num_workers=num_workers)
