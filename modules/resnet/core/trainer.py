@@ -53,6 +53,7 @@ class Trainer():
 
             val_acc = self.eval()
             LOGGER.info(f'\t[epoch {epoch}] val_acc: {val_acc} train_loss: {running_loss / len(self.train_data)}')
+            running_loss = 0.0
             if max_acc < val_acc and save_best:
                 LOGGER.info(f'Saving best checkpoint to {save_path}')
                 max_acc = val_acc

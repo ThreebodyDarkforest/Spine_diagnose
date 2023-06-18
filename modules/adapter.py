@@ -1,6 +1,6 @@
 import torch
 from detector import detect, get_yolo_model
-from util import filter_box, plot_boxes, crop_img, get_center, IMG_EXT
+from util import filter_box, filter_box_deperacated, plot_boxes, crop_img, get_center, IMG_EXT
 from classifier import get_resnet_model, classify, get_vit_model, get_swin_model
 from evaler import evalutate
 import cv2, os

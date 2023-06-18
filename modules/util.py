@@ -62,12 +62,46 @@ def crop_img(img, boxes, padding: int = 2):
     for box in boxes:
         p1, p2 = box['xyxy'][0], box['xyxy'][1]
         crop_imgs.append(img[int(p1[0]) - padding : int(p2[0]) + padding, \
-                             int(p1[1]) - padding : int(p2[1]) + padding])
+                             int(p1[1]) - padding : int(p2[1]) + padding, :])
     return crop_imgs
 
-def filter_box(img, boxes):
+def get_avg_h(boxes):
+    '''return: verb, disc'''
+    avg_ch, avg_vh = 0., 0.
+    box_cnum, box_vnum = 0, 0
+    for box in boxes:
+        if box['label'] == 'Anchor' or box['label'] == 'All': continue
+        if len(box['label']) > 2:
+            avg_ch += box['xyxy'][1][1] - box['xyxy'][0][1]
+            box_cnum += 1
+        else:
+            avg_vh += box['xyxy'][1][1] - box['xyxy'][0][1]
+            box_vnum += 1
+    avg_vh /= box_vnum
+    avg_ch /= box_cnum
+    return avg_vh, avg_ch
+
+def get_propose_y(ind, anchor_box, all_box, boxes):
+    avg_ch, avg_vh = 0., 0.
+    box_cnum, box_vnum = 0, 0
+    for box in boxes:
+        if box['label'] == 'Anchor' or box['label'] == 'All': continue
+        if len(box['label']) > 2:
+            avg_ch += box['xyxy'][1][1] - box['xyxy'][0][1]
+            box_cnum += 1
+        else:
+            avg_vh += box['xyxy'][1][1] - box['xyxy'][0][1]
+            box_vnum += 1
+    avg_vh /= box_vnum
+    avg_ch /= box_cnum
+    anchor_x, anchor_y = get_center(anchor_box)
+    res = anchor_y - int(ind / 2) * avg_vh - (int(ind / 2) + ind % 2) * avg_ch
+    return max(res, all_box['xyxy'][0][1])
+
+def filter_box_deperacated(img, boxes):
     boxes = sorted(boxes, key=lambda x : bone_asc[x['label']])
     anchor_box, all_box = boxes[0], boxes[-1]
+    # TODO: slove the condition that the anchor wasn't detected
     assert anchor_box['label'] == 'Anchor' and all_box['label'] == 'All', 'Invalid image.'
     
     # filter those boxes that out of the roi
@@ -100,26 +134,56 @@ def filter_box(img, boxes):
             nw_box['label'] = bone_str[i]
             bucket[i].append(nw_box)
         if len(bucket[i]) > 1:
-            bucket[i] = sorted(bucket[i], key=lambda x : x['confidence'], reverse=True)
+            bucket[i] = sorted(bucket[i], key=lambda x : abs(get_propose_y(i, anchor_box, all_box, boxes) - (x['xyxy'][0][1] + x['xyxy'][1][1]) / 2))
     
     result = [x[0] for x in bucket[1:12]]
     return result
+
+def filter_box(img, boxes):
+    boxes = sorted(boxes, key=lambda x : bone_asc[x['label']])
+    anchor_box, all_box = boxes[0], boxes[-1]
+    # TODO: slove the condition that the anchor wasn't detected
+    assert anchor_box['label'] == 'Anchor' and all_box['label'] == 'All', 'Invalid image.'
+    
+    # filter those boxes that out of the roi
+    boxes = list(filter(lambda x : x['xyxy'][0][1] + x['xyxy'][1][1] <=  
+                        anchor_box['xyxy'][0][1] + anchor_box['xyxy'][1][1] and
+                        get_center(x)[0] > all_box['xyxy'][0][0] and
+                        get_center(x)[0] < all_box['xyxy'][1][0] and
+                        get_center(x)[1] > all_box['xyxy'][0][1] and
+                        get_center(x)[1] < all_box['xyxy'][1][1] and
+                        x['label'] != 'Anchor' and x['label'] !='All', boxes))
+    boxes = sorted(boxes, key=lambda x : get_center(x)[1], reverse=True)
+    all_box_size = get_size(all_box)
+    mesh_size = all_box_size[1] / 11
+    real_ind = [i for i in range(1, len(boxes)) if get_center(boxes[i - 1])[1] - get_center(boxes[i])[1] > mesh_size / 2]
+    bone_str = list(bone_asc.keys())
+
+    boxes[0]['label'] = bone_str[1]
+    bucket = [boxes[0]]
+    for i, ind in enumerate(real_ind):
+        if i > 9: continue
+        boxes[ind]['label'] = bone_str[i + 2]
+        bucket.append(boxes[ind])
+    return bucket
 
 def plot_boxes(img, lw, boxes, font=cv2.FONT_HERSHEY_COMPLEX, txt_color=(255, 255, 255), color=(255, 0, 0), use_dot=True):
     for box in boxes:
         p1, p2 = box['xyxy'][0], box['xyxy'][1]
         center = get_center(box)
         center = int(center[0]), int(center[1])
-        if use_dot:
-            cv2.circle(img, center, 2, color, lw)
-        else:
+        cv2.circle(img, center, 4, color, lw)
+        try:
             cv2.rectangle(img, p1, p2, color, thickness=lw, lineType=cv2.LINE_AA)
+        except:
+            pass
         tf = max(lw - 1, 1)  # font thickness
         w, h = cv2.getTextSize(box['label'], 0, fontScale=lw / 3, thickness=tf)[0]  # text width, height
         outside = p1[1] - h - 3 >= 0  # label fits outside box
         p2 = p1[0] + w, p1[1] - h - 3 if outside else p1[1] + h + 3
         #cv2.rectangle(img, p1, p2, color, -1, cv2.LINE_AA)  # filled
-        text = box['label'] + ' ' + str(int(box['confidence'] * 100))
+        text = box['label'] + ' ' + box['dlabel'] + ' ' + str(int(box['confidence'] * 100))
+        #text = box['label'] + ' ' + str(int(box['confidence'] * 100))
         if use_dot:
             cv2.putText(img, text, (center[0] + 4, center[1] + 4), font, lw / 3, txt_color,
                         thickness=tf, lineType=cv2.LINE_AA)

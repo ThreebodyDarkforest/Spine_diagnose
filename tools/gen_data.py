@@ -204,8 +204,9 @@ def main(annotation_file, file_dir, work_type='train'):
         plt.imsave(save_path, img_x, cmap='gray')
         all_gts = sorted(all_gts, key=lambda x : x['coord'][1], reverse=True)
 
-        eval_img_path = os.path.join(eval_path, name + '.jpg')
-        plt.imsave(eval_img_path, img_x, cmap='gray')
+        if work_type == 'val':
+            eval_img_path = os.path.join(eval_path, name + '.jpg')
+            plt.imsave(eval_img_path, img_x, cmap='gray')
         
         # 生成全局定位锚
         min_x, max_x = min([x['coord'][0] for x in all_gts]), max([x['coord'][0] for x in all_gts])
@@ -256,13 +257,13 @@ def main(annotation_file, file_dir, work_type='train'):
             plt.imsave(precise_file_path, postprocess(img_x, coords, [x, y]), cmap='gray')
             
             # 生成用于性能评估的图像和数据
-            disease_label = get_disease_str(disease_type)
-            
-            json_info.append({"bone_type": vertebrae_or_disc_name, "disease_type": disease_label, "coord": coords})
-        
-        eval_label_path = os.path.join(eval_path, name + '.json')
-        with open(eval_label_path, 'w') as f:
-            f.write(json.dumps(json_info))
+            if work_type == 'val':
+                disease_label = get_disease_str(disease_type)
+                json_info.append({"bone_type": vertebrae_or_disc_name, "disease_type": disease_label, "coord": coords})
+        if work_type == 'val':
+            eval_label_path = os.path.join(eval_path, name + '.json')
+            with open(eval_label_path, 'w') as f:
+                f.write(json.dumps(json_info))
 
         # 生成整体标注框
         min_x, min_y = np.min(box_axis, axis=0)

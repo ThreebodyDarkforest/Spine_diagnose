@@ -19,4 +19,4 @@ dnames: ['v1', 'v2', 'v3', 'v4', 'v5', 'None']
 
 # model type
 detect: 'yolov6s'
-classify: 'swin_b'
+classify: 'resnet50'
