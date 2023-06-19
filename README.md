@@ -150,9 +150,9 @@ python train.py --model resnet50 --batch 32 --epochs 10 --conf configs/resnet50.
 python eval.py --source eval_dir --device 0
 ```
 
-运行完毕后，您将获取模型在测试数据上的准确率、召回率和f1分数指标。
+运行完毕后，您将获取模型在测试数据上的准确率、召回率、f1分数指标和AP值。
 
-> 注意：此处的 `--source` 与 `predict.py` 中略有不同。请将运行参数中的 `--source` 设置为您存放性能评估数据 `eval` 的路径。
+> 注意：此处的 `--source` 与 `predict.py` 中略有不同。请将运行参数中的 `--source` 设置为您存放性能评估数据 `eval` 的路径。除此之外，**`eval.py` 的运行参数与 `predict.py` 一致**。
 
 ## 项目介绍
 
