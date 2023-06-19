@@ -15,17 +15,20 @@ from swin_trans.core import util as swin_util
 
 transform = data_transform['val']
 
-def get_resnet_model(weights, config_path, half: bool = False, \
+def get_resnet_model(weightsA, weightsB, config_path, half: bool = False, \
                      pretrained: bool = False, device = 'cpu'):
-    assert '.pt' in weights, 'Invalid model path.'
+    assert '.pt' in weightsA and '.pt' in weightsB, 'Invalid model path.'
     _dict = load_yaml(config_path)
     model_type = _dict['classify']
-    class_names, class_num = _dict['dnames'], _dict['dnc']
+    class_namesA, class_numA = _dict['dnames1'], _dict['dnc1']
+    class_namesB, class_numB = _dict['dnames2'], _dict['dnc2']
     if not pretrained:
-        model = resnet_util.load_model(weights, class_num, model_type, device)
+        modelA = resnet_util.load_model(weightsA, class_numA, model_type, device)
+        modelB = resnet_util.load_model(weightsB, class_numB, model_type, device)
     else:
-        model = resnet_util.load_pretrained(weights, class_num, model_type, device)
-    return model, class_names
+        modelA = resnet_util.load_pretrained(weightsA, class_numA, model_type, device)
+        modelB = resnet_util.load_pretrained(weightsB, class_numB, model_type, device)
+    return modelA, class_namesA, modelB, class_namesB
 
 def get_vit_model(weights, config_path, half: bool = False, \
                      pretrained: bool = False, device = 'cpu'):
@@ -85,10 +88,10 @@ def classify(model: nn.Module, img: Union[str, np.ndarray], class_names: List[st
 
     if model_type == 'resnet':
         logits = model(img)
-        predict_y = (torch.max(logits[:, :6], dim=1)[1].item(), torch.max(logits[:, 6:], dim=1)[1].item())
+        predict_y = (torch.max(logits[:, :len(class_names)], dim=1)[1].item(), torch.max(logits[:, len(class_names):], dim=1)[1].item())
         label = class_names[predict_y[0]], class_names[predict_y[1]]
-        conf = torch.concat((F.softmax(logits[:, :6], dim=1), F.softmax(logits[:, 6:], dim=1)), dim=1).tolist()[0]
-        precision = (torch.max(F.softmax(logits[:, :6], dim=1), dim=1)[0].item(), torch.max(F.softmax(logits[:, 6:], dim=1), dim=1)[0].item())
+        conf = torch.concat((F.softmax(logits[:, :len(class_names)], dim=1), F.softmax(logits[:, len(class_names):], dim=1)), dim=1).tolist()[0]
+        precision = (torch.max(F.softmax(logits[:, :len(class_names)], dim=1), dim=1)[0].item(), torch.max(F.softmax(logits[:, len(class_names):], dim=1), dim=1)[0].item())
         return label, precision, conf
     else:
         pass

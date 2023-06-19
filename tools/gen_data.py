@@ -173,14 +173,18 @@ def main(annotation_file, file_dir, work_type='train'):
     eval_path = os.path.join(PATH, 'eval')
 
     precise_path = os.path.join(precise_label_path, os.path.basename(path))
+    precise_pathA = os.path.join(precise_path, 'classA')
+    precise_pathB = os.path.join(precise_path, 'classB')
     if not os.path.exists(path):
         os.makedirs(path)
     if not os.path.exists(label_path):
         os.makedirs(label_path)
     if not os.path.exists(view_path):
         os.makedirs(view_path)
-    if not os.path.exists(precise_path):
-        os.makedirs(precise_path)
+    if not os.path.exists(precise_pathA):
+        os.makedirs(precise_pathA)
+    if not os.path.exists(precise_pathB):
+        os.makedirs(precise_pathB)
     if not os.path.exists(eval_path):
         os.makedirs(eval_path)
 
@@ -248,10 +252,11 @@ def main(annotation_file, file_dir, work_type='train'):
             label_txt += f'{class_id} {center_x} {center_y} {box_w} {box_h}\n'
 
             # 生成用于分类的图像和数据
-            pos_type = 0 if vertebrae_disease is not None else 1
+            pos_type = 0 if len(vertebrae_or_disc_name) <= 2 else 1 # 0 椎骨 1 椎间盘
             precise_txt = f'{pos_type} {disease_type}'
-            precise_txt_path = os.path.join(precise_path, name + f'_{i}' + '.txt')
-            precise_file_path = os.path.join(precise_path, name + f'_{i}' + '.jpg')
+            precise_save_path = precise_pathB if pos_type else precise_pathA
+            precise_txt_path = os.path.join(precise_save_path, name + f'_{i}' + '.txt')
+            precise_file_path = os.path.join(precise_save_path, name + f'_{i}' + '.jpg')
             with open(precise_txt_path, 'w', encoding='utf-8') as f:
                 f.write(precise_txt)
             plt.imsave(precise_file_path, postprocess(img_x, coords, [x, y]), cmap='gray')

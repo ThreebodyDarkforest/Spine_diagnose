@@ -18,7 +18,8 @@ from modules.adapter import eval
 def get_args_parser(add_help=True):
     parser = argparse.ArgumentParser(description='Spine diagnose PyTorch evaluation.', add_help=add_help)
     parser.add_argument('--detect-model', type=str, default='weights/detect.pt', help='detect model path(s) for inference.')
-    parser.add_argument('--classify-model', type=str, default='weights/classify.pt', help='classify model path(s) for inference.')
+    parser.add_argument('--vert-model', type=str, default='weights/vert.pt', help='vert model path(s) for inference.')
+    parser.add_argument('--disc-model', type=str, default='weights/disc.pt', help='disc model path(s) for inference.')
     parser.add_argument('--source', type=str, default='data/images', help='the source path, e.g. image-file/dir.')
     parser.add_argument('--webcam', action='store_true', help='whether to use webcam.')
     parser.add_argument('--webcam-addr', type=str, default='0', help='the web camera address, local camera or rtsp address.')

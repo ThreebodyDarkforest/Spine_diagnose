@@ -4,7 +4,7 @@ from PIL import Image
 from resnet.data.util import data_transform
 
 class SpineDataSet(Dataset):
-    def __init__(self, path, transforms=None):
+    def __init__(self, path, class_cnt, transforms=None):
         data_paths = sorted(glob.glob(os.path.join(path, '**.jpg')))
         anno_paths = sorted(glob.glob(os.path.join(path, '**.txt')))
         self.transforms = transforms
@@ -15,8 +15,9 @@ class SpineDataSet(Dataset):
             with open(anno_path, 'r') as f:
                 ret = f.readline()
                 disease_type = ast.literal_eval(ret[2:])
-                if len(disease_type) == 0: disease_type.extend([5, 5])
-                if len(disease_type) <= 1: disease_type.append(5)
+                if len(disease_type) == 0: disease_type.extend([class_cnt - 1, class_cnt - 1])
+                if len(disease_type) <= 1: disease_type.append(class_cnt - 1)
+                assert max(disease_type) < class_cnt, 'Invalid dataset.'
                 self.data_info.append([img_path, int(ret[0]), disease_type])
     
     def __len__(self) -> int:
@@ -29,7 +30,7 @@ class SpineDataSet(Dataset):
             img = self.transforms(img)
         return img, type_id, label
     
-def get_dataloader(img_dir, batch_size: int = 32, dtype=None, num_workers: int = 0):
+def get_dataloader(img_dir, class_cnt, batch_size: int = 32, dtype=None, num_workers: int = 0):
     transform = data_transform['val'] if dtype == 'val' else data_transform['train']
-    dataset = SpineDataSet(img_dir, transform)
+    dataset = SpineDataSet(img_dir, class_cnt, transform)
     return DataLoader(dataset, batch_size, shuffle=True, num_workers=num_workers)

@@ -11,11 +11,17 @@ names: ['L1', 'L2', 'L3' ,'L4', 'L5', 'T12-L1', 'L1-L2', 'L2-L3', 'L3-L4', 'L4-L
 
 # classifier configs
 # Please replace the classiy data folder to yours
-ctrain: /home/marcus/Learn/DL/Spine_diagnose/test/classify/train
-cval: /home/marcus/Learn/DL/Spine_diagnose/test/classify/val
+ctrain1: /home/marcus/Learn/DL/Spine_diagnose/tools/datasets/classify/train/classA
+cval1: /home/marcus/Learn/DL/Spine_diagnose/tools/datasets/classify/val/classA
+
+ctrain2: /home/marcus/Learn/DL/Spine_diagnose/tools/datasets/classify/train/classA
+cval2: /home/marcus/Learn/DL/Spine_diagnose/tools/datasets/classify/val/classB
 # disease Classes
-dnc: 6
-dnames: ['v1', 'v2', 'v3', 'v4', 'v5', 'None']
+dnc1: 3
+dnames1: ['v1', 'v2', 'None']
+
+dnc2: 6
+dnames2: ['v1', 'v2', 'v3', 'v4', 'v5', 'None']
 
 # model type
 detect: 'yolov6s'

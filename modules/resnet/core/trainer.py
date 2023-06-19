@@ -12,8 +12,8 @@ class Trainer():
     def __init__(self, train_dir: str, val_dir: str, class_num: int = 6, model_name: str = 'resnet50', num_workers: int = 0, \
                  optimizer: str = 'Adam', batch_size: int = 32, model: nn.Module = None, device='cpu') -> None:
         assert optimizer in ['SGD', 'Adam'], 'Invalid optimizer.'
-        self.train_data = get_dataloader(train_dir, batch_size, num_workers=num_workers)
-        self.eval_data = get_dataloader(val_dir, batch_size, num_workers=num_workers)
+        self.train_data = get_dataloader(train_dir, class_num, batch_size, num_workers=num_workers)
+        self.eval_data = get_dataloader(val_dir, class_num, batch_size, num_workers=num_workers)
         if model is None:
             self.model = get_raw_model(model_name, class_num, device)
         else:
@@ -21,6 +21,7 @@ class Trainer():
         self.device = device
         self.optim = optimizer
         self.model_name = model_name
+        self.class_num = class_num
     
     def train(self, max_epochs=10, lr=1e-4, save=False, \
               save_every=5, save_best=False, save_path: str = None):
@@ -28,6 +29,9 @@ class Trainer():
         loss_fn = nn.CrossEntropyLoss()
         optimizer = optim.Adam(self.model.parameters(), lr=lr) \
                     if self.optim == 'Adam' else optim.SGD(self.model.parameters(), lr=lr)
+        if not os.path.exists(save_path):
+            os.makedirs(save_path)
+
         for epoch in range(max_epochs):
             self.model.train()
             print(f'epoch {epoch + 1}/{max_epochs}:')
@@ -36,11 +40,11 @@ class Trainer():
                 imgs, type_ids, labels = data
                 optimizer.zero_grad()
                 logits = self.model(imgs.to(self.device))
-                predict_y = torch.concat((torch.max(logits[:, :6], dim=1)[1], torch.max(logits[:, 6:], dim=1)[1]))
+                predict_y = torch.concat((torch.max(logits[:, :self.class_num], dim=1)[1], torch.max(logits[:, self.class_num:], dim=1)[1]))
                 ret = (predict_y == torch.concat((labels[0].to(self.device), labels[1].to(self.device)))).view(2, -1)
                 acc = (ret.sum(dim=0) >= 2).sum().item() / type_ids.shape[0]
                 train_acc += acc
-                loss = loss_fn(logits[:, :6], labels[0].to(self.device)) + loss_fn(logits[:, 6:], labels[1].to(self.device))
+                loss = loss_fn(logits[:, :self.class_num], labels[0].to(self.device)) + loss_fn(logits[:, self.class_num:], labels[1].to(self.device))
                 loss.backward()
                 optimizer.step()
 
@@ -69,7 +73,7 @@ class Trainer():
             for data in self.eval_data:
                 imgs, type_ids, labels = data
                 logits = self.model(imgs.to(self.device))
-                predict_y = torch.concat((torch.max(logits[:, :6], dim=1)[1], torch.max(logits[:, 6:], dim=1)[1]))
+                predict_y = torch.concat((torch.max(logits[:, :self.class_num], dim=1)[1], torch.max(logits[:, self.class_num:], dim=1)[1]))
                 #print('predict: ', disease_type[predict_y[0].item()], disease_type[predict_y[1].item()], \
                 #      'ground truth: ', disease_type[labels[0].item()], disease_type[labels[1].item()])
                 ret = (predict_y == torch.concat((labels[0].to(self.device), labels[1].to(self.device)))).view(2, -1)

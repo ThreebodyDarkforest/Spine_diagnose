@@ -51,13 +51,13 @@ def predict(args):
     if 'yolov6' in cfgs['detect']:
         detect_model, stride, dclass_names = get_yolo_model(args.detect_model, args.yaml, device=device)
     if 'resnet' in cfgs['classify']:
-        classify_model, cclass_names = get_resnet_model(args.classify_model, args.yaml, device=device)
+        classify_modelA, cclass_namesA, classify_modelB, cclass_namesB = get_resnet_model(args.vert_model, args.disc_model, args.yaml, device=device)
     if 'ViT' in cfgs['classify']:
         classify_model, cclass_names = get_vit_model(args.classify_model, args.yaml, device=device)
     if 'swin' in cfgs['classify']:
         classify_model, cclass_names = get_swin_model(args.classify_model, args.yaml, device=device)
     
-    assert detect_model is not None and classify_model is not None, 'Invalid model path or file.'
+    #assert detect_model is not None and classify_model is not None, 'Invalid model path or file.'
 
     if args.save_dir is not None and not os.path.exists(args.save_dir):
         os.makedirs(args.save_dir)
@@ -75,23 +75,30 @@ def predict(args):
         boxes = filter_box(img_src, boxes)
         imgs = crop_img(img_src, boxes, 4)
 
-        ret = [classify(classify_model, img, cclass_names, device=device) for img in imgs]
+        ret = [classify(classify_modelA, img, cclass_namesA, device=device) if len(box['label']) <= 2 \
+               else classify(classify_modelB, img, cclass_namesB, device=device) for img, box in zip(imgs, boxes)]
         result = []
         for i, (data, box) in enumerate(zip(ret, boxes)):
             disease_type, conf, cls_logits = data[0], data[1], data[2]
             #box['label'] += ' ' + get_disease_str(disease_type)
             box['dlabel'] = get_disease_str(disease_type)
             #box['logits'] = [x * box['confidence'] for x in logits]
+            class_cnt = len(cls_logits) // 2
+            if class_cnt <= 3: 
+                [cls_logits.insert(2, 0.) for _ in range(3)]
+                [cls_logits.insert(8, 0.) for _ in range(3)]
+            class_cnt = len(cls_logits) // 2
+            #print(cls_logits)
             result.append({
                     "bone_type": box['label'],
                     "bone_idx": box['class_num'],
                     "disease_type": get_disease_str(disease_type), 
-                    "disease_idx": (np.argmax(cls_logits[:6]), np.argmax(cls_logits[6:])),
+                    "disease_idx": (np.argmax(cls_logits[:class_cnt]), np.argmax(cls_logits[class_cnt:])),
                     "coord": get_center(box),
                     "detect_conf": box['confidence'],
                     "classify_conf": conf[0] * conf[1],
                     "detect_logits": box['logits'],
-                    "classify_logits": (cls_logits[:6], cls_logits[6:]),
+                    "classify_logits": (cls_logits[:class_cnt], cls_logits[class_cnt:]),
                 })
         results.append({'file_path': path, 'result': result})
 
@@ -116,7 +123,7 @@ def eval(args):
     num_dict = {}
     [num_dict.update({name: i}) for i, name in enumerate(cfgs['names'])]
     dnum_dict = {}
-    [dnum_dict.update({name: i}) for i, name in enumerate(cfgs['dnames'])]
+    [dnum_dict.update({name: i}) for i, name in enumerate(cfgs['dnames2'])]
 
     # preprocess source data
     label_path = sorted(glob.glob(os.path.join(args.source, '**.json')))
@@ -215,17 +222,24 @@ def train_resnet(args):
     save_path = os.path.join(args.output_dir, f'{args.model}_{get_date_str()}')
     if not os.path.exists(save_path):
         os.makedirs(save_path)
-    model = None
+    modelA, modelB = None, None
 
     if args.pretrained is not None:
-        model, class_names = get_resnet_model(args.pretrained, args.data_path, pretrained=args.pretrained)
+        modelA, class_namesA, modelB, class_namesB = get_resnet_model(args.pretrained, args.data_path, pretrained=args.pretrained)
     
-    trainer = resn_Trainer(data_cfg['ctrain'], data_cfg['cval'], data_cfg['dnc'],
+    trainerA = resn_Trainer(data_cfg['ctrain1'], data_cfg['cval1'], data_cfg['dnc1'],
                            args.model, args.workers,
-                           cfg.solver.optim, args.batch_size, model, device)
+                           cfg.solver.optim, args.batch_size, modelA, device)
 
-    trainer.train(args.epochs, cfg.solver.lr, cfg.saver.save,
-                  cfg.saver.save_every, cfg.saver.save_best, save_path)
+    trainerA.train(args.epochs, cfg.solver.lr, cfg.saver.save,
+                  cfg.saver.save_every, cfg.saver.save_best, os.path.join(save_path, 'modelA'))
+    
+    trainerB = resn_Trainer(data_cfg['ctrain2'], data_cfg['cval2'], data_cfg['dnc2'],
+                           args.model, args.workers,
+                           cfg.solver.optim, args.batch_size, modelB, device)
+    
+    trainerB.train(args.epochs, cfg.solver.lr, cfg.saver.save,
+                  cfg.saver.save_every, cfg.saver.save_best, os.path.join(save_path, 'modelB'))
 
 def train_vit(args):
     cfg = Config.fromfile(args.conf_file)
