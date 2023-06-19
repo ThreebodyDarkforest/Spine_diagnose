@@ -111,7 +111,8 @@ def detect(model: nn.Module, img_path: Union[str, np.ndarray], class_names: List
 
         pred_results = model(img)
         classes:Optional[List[int]] = None # the classes to keep
-        det = non_max_suppression(pred_results, conf_thres, iou_thres, classes, agnostic_nms, max_det=max_det)[0]
+        det, det_logits = non_max_suppression(pred_results, conf_thres, iou_thres, classes, agnostic_nms, max_det=max_det)
+        det, det_logits = det[0], det_logits[0]
 
         gn = torch.tensor(img_src.shape)[[1, 0, 1, 0]]  # normalization gain whwh
         img_ori = img_src.copy()
@@ -119,11 +120,16 @@ def detect(model: nn.Module, img_path: Union[str, np.ndarray], class_names: List
 
         if len(det):
             det[:, :4] = Inferer.rescale(img.shape[2:], det[:, :4], img_src.shape).round()
-            for *xyxy, conf, cls in reversed(det):
+            for logits, (*xyxy, conf, cls) in zip(reversed(det_logits), reversed(det)):
                 class_num = int(cls)
                 label = None if hide_labels else (class_names[class_num] if hide_conf else f'{class_names[class_num]} {conf:.2f}')
-                results.append({'xyxy': ((int(xyxy[0]), int(xyxy[1])), (int(xyxy[2]), int(xyxy[3]))), 'label': class_names[class_num], \
-                                'class_num': class_num, 'confidence': conf.item()})
+                results.append({
+                    'xyxy': ((int(xyxy[0]), int(xyxy[1])), (int(xyxy[2]), int(xyxy[3]))), 
+                    'label': class_names[class_num],
+                    'class_num': class_num, 
+                    'confidence': conf.item(), 
+                    'logits': logits.tolist(),
+                })
                 if plot:
                     Inferer.plot_box_and_label(img_ori, max(round(sum(img_ori.shape) / 2 * 0.003), 2), xyxy, label, color=Inferer.generate_colors(class_num, True))
         

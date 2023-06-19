@@ -55,6 +55,7 @@ def non_max_suppression(prediction, conf_thres=0.25, iou_thres=0.45, classes=Non
     max_nms = 30000  # maximum number of boxes put into torchvision.ops.nms()
     time_limit = 10.0  # quit the function when nms cost time exceed the limit time.
     multi_label &= num_classes > 1  # multiple labels per box
+    logits = [torch.zeros((0, 6), device=prediction.device)] * prediction.shape[0]
 
     tik = time.time()
     output = [torch.zeros((0, 6), device=prediction.device)] * prediction.shape[0]
@@ -74,14 +75,17 @@ def non_max_suppression(prediction, conf_thres=0.25, iou_thres=0.45, classes=Non
         # Detections matrix's shape is  (n,6), each row represents (xyxy, conf, cls)
         if multi_label:
             box_idx, class_idx = (x[:, 5:] > conf_thres).nonzero(as_tuple=False).T
+            y = torch.cat((x[box_idx, 5:, None], class_idx[:, None].float()), 1)
             x = torch.cat((box[box_idx], x[box_idx, class_idx + 5, None], class_idx[:, None].float()), 1)
         else:  # Only keep the class with highest scores.
             conf, class_idx = x[:, 5:].max(1, keepdim=True)
+            y = torch.cat((x[:, 5:], class_idx), 1)[conf.view(-1) > conf_thres]
             x = torch.cat((box, conf, class_idx.float()), 1)[conf.view(-1) > conf_thres]
 
         # Filter by class, only keep boxes whose category is in classes.
         if classes is not None:
             x = x[(x[:, 5:6] == torch.tensor(classes, device=x.device)).any(1)]
+            y = y[(y[:, -2:-1] == torch.tensor(classes, device=x.device)).any(1)]
 
         # Check shape
         num_box = x.shape[0]  # number of boxes
@@ -98,8 +102,9 @@ def non_max_suppression(prediction, conf_thres=0.25, iou_thres=0.45, classes=Non
             keep_box_idx = keep_box_idx[:max_det]
 
         output[img_idx] = x[keep_box_idx]
+        logits[img_idx] = y[keep_box_idx, :-1]
         if (time.time() - tik) > time_limit:
             print(f'WARNING: NMS cost time exceed the limited {time_limit}s.')
             break  # time limit exceeded
 
-    return output
+    return output, logits

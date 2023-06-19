@@ -18,6 +18,7 @@ import torch.nn as nn
 import glob
 from tqdm import tqdm
 import json
+import numpy as np
 
 from yolov6.core.engine import Trainer
 from yolov6.utils.events import save_yaml, load_yaml
@@ -76,19 +77,21 @@ def predict(args):
 
         ret = [classify(classify_model, img, cclass_names, device=device) for img in imgs]
         result = []
-        for data, box in zip(ret, boxes):
-            disease_type, conf, logits = data[0], data[1], data[2]
-            label = box['label']
+        for i, (data, box) in enumerate(zip(ret, boxes)):
+            disease_type, conf, cls_logits = data[0], data[1], data[2]
             #box['label'] += ' ' + get_disease_str(disease_type)
             box['dlabel'] = get_disease_str(disease_type)
-            box['logits'] = [x * box['confidence'] for x in logits]
-            box['confidence'] *= conf[0] * conf[1]
+            #box['logits'] = [x * box['confidence'] for x in logits]
             result.append({
-                    "bone_type": label,
+                    "bone_type": box['label'],
+                    "bone_idx": box['class_num'],
                     "disease_type": get_disease_str(disease_type), 
+                    "disease_idx": (np.argmax(cls_logits[:6]), np.argmax(cls_logits[6:])),
                     "coord": get_center(box),
-                    "logits": box['logits'],
-                    "confidence": box['confidence'],
+                    "detect_conf": box['confidence'],
+                    "classify_conf": conf[0] * conf[1],
+                    "detect_logits": box['logits'],
+                    "classify_logits": (cls_logits[:6], cls_logits[6:]),
                 })
         results.append({'file_path': path, 'result': result})
 
@@ -112,8 +115,8 @@ def eval(args):
     # extract class_to_num_dict
     num_dict = {}
     [num_dict.update({name: i}) for i, name in enumerate(cfgs['names'])]
-    #dnum_dict = {}
-    #[dnum_dict.update({name: i}) for i, name in enumerate(cfgs['dnames'])]
+    dnum_dict = {}
+    [dnum_dict.update({name: i}) for i, name in enumerate(cfgs['dnames'])]
 
     # preprocess source data
     label_path = sorted(glob.glob(os.path.join(args.source, '**.json')))
@@ -123,7 +126,7 @@ def eval(args):
         with open(path, 'r') as f:
             labels.append(json.loads(f.read()))
 
-    eval_res = evalutate(results, labels, num_dict)
+    eval_res = evalutate(results, labels, num_dict, dnum_dict)
     LOGGER.info(f'Evaluation result: {eval_res}')
     return eval_res
 

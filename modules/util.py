@@ -182,7 +182,7 @@ def plot_boxes(img, lw, boxes, font=cv2.FONT_HERSHEY_COMPLEX, txt_color=(255, 25
         outside = p1[1] - h - 3 >= 0  # label fits outside box
         p2 = p1[0] + w, p1[1] - h - 3 if outside else p1[1] + h + 3
         #cv2.rectangle(img, p1, p2, color, -1, cv2.LINE_AA)  # filled
-        text = box['label'] + ' ' + box['dlabel'] + ' ' + str(int(box['confidence'] * 100))
+        text = box['label'] + ' ' + box['dlabel']
         #text = box['label'] + ' ' + str(int(box['confidence'] * 100))
         if use_dot:
             cv2.putText(img, text, (center[0] + 4, center[1] + 4), font, lw / 3, txt_color,
