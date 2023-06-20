@@ -2,10 +2,10 @@
 *.pth
 *.bin
 
-weights/
 test/dataset/
 test/classify/
 test/models/
 __pycache__
 runs/
 logs/
+tools/datasets

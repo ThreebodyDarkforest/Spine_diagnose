@@ -59,7 +59,7 @@ pip install -r requirements.txt
 
 您可以通过以下链接下载本项目需要的文件，并将它们存放在 `Spine_diagnose/weights` 目录下。
 
-权重文件下载链接：https://mega.nz/file/sHVQGQLI#oiD6etmKEnG4ZQZBztNcoa3WWRYIcsbpT2I3CNsOh4s
+权重文件下载链接：https://mega.nz/file/oX8SFIga#9ymRR2A_BEnYqaLx0gL1Kq-sBk47V7RW8G8KurkImhY
 
 - 运行推理获取结果
 
@@ -91,7 +91,7 @@ python predict.py --source img_path / img_dir --save-dir runs/inference --save-i
 
 - 准备数据集
 
-在开始训练之前，需要先准备数据集。我们推荐您从[网盘链接]()下载已经预处理过的开箱即用的数据集。下载好后进行解压，您将看到以下内容。
+在开始训练之前，需要先准备数据集。我们推荐您从[网盘链接](https://mega.nz/file/QS1ETbZB#-S0L7KprC0Es_bHsJznJiP03PZgC9mH0ESVLEo785tM)下载已经预处理过的开箱即用的数据集。下载好后进行解压，您将看到以下内容。
 
 ```
 .
@@ -110,7 +110,7 @@ python predict.py --source img_path / img_dir --save-dir runs/inference --save-i
 
 接下来，按照之前记下的信息修改 `Spine_diagnose/data/spine.yaml` 中的内容。注意，您只需要修改文件中的路径。
 
-> 您也可以从[链接](https://tianchi.aliyun.com/dataset/79463)下载原始数据集并使用我们提供的工具提取有效数据（需要补充网盘链接，官网数据集对不上）。具体方法请参阅[从原始数据集中提取数据](./doc/data_extract.md)。
+> 您也可以从[数据集下载链接]()下载原始数据集并使用我们提供的工具提取有效数据（暂时没有上传）。具体方法请参阅[从原始数据集中提取数据](./doc/data_extract.md)。
 
 ### 训练 YOLOv6
 
@@ -141,6 +141,18 @@ python train.py --model resnet50 --batch 32 --epochs 10 --conf configs/resnet50.
 值得一提的是，您可以通过配置 `--pretrained` 选项来指定是否使用预训练模型。
 
 > 注意：当您希望使用自己训练的模型进行推理或性能评估时，需要在代码运行参数中配置 `--detect` 和 `--classify` 为您的模型存放路径。
+
+### 加载预训练模型（仅训练分类器时有效）
+
+您可以通过 `--pretrained` 参数设置预训练模型的路径，下面是一个加载 `resnet50` 预训练模型的例子。
+
+如果您需要从预训练模型微调，我们推荐您从[预训练模型下载链接](https://mega.nz/file/JDFWwDQZ#7wjv8Wn6OyLW7HeahTVrHzLB7nS2Xe6_4jvvO21yemg)下载预训练模型。
+
+```
+python train.py --model resnet50 --batch 32 --epochs 10 --conf configs/resnet50.py --pretrained weights/resnet50.pth
+```
+
+您也可以加载其它预训练模型，比如 ViT-B-32 或 swin_b 等。
 
 ## 性能评估
 

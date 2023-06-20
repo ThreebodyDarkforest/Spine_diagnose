@@ -21,3 +21,4 @@ thop  # FLOPs computation
 SimpleITK
 scikit-image>=0.21.0
 gradio>=3.34.0
+scikit-learn>=1.0.2
