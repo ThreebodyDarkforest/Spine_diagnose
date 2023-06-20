@@ -142,6 +142,14 @@ python train.py --model resnet50 --batch 32 --epochs 10 --conf configs/resnet50.
 
 > 注意：当您希望使用自己训练的模型进行推理或性能评估时，需要在代码运行参数中配置 `--detect` 和 `--classify` 为您的模型存放路径。
 
+### 可视化训练结果
+
+您可以在 `Spine_diagnose/runs/train` 文件夹下获取 tensorboard 日志文件，您可以运行以下命令打开 tensorboad 查看结果：
+
+```
+tensorboard --logdir=runs/train
+```
+
 ### 加载预训练模型（仅训练分类器时有效）
 
 您可以通过 `--pretrained` 参数设置预训练模型的路径，下面是一个加载 `resnet50` 预训练模型的例子。

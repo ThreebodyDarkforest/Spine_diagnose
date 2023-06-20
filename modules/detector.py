@@ -7,7 +7,7 @@ from components.logger import LOGGER
 from yolov6.utils.events import load_yaml
 from yolov6.layers.common import DetectBackend
 from yolov6.data.data_augment import letterbox
-from yolov6.utils.nms import non_max_suppression
+from yolov6.utils.nms import fix_non_max_suppression
 from yolov6.core.inferer import Inferer
 
 from typing import List, Optional, Union
@@ -111,7 +111,7 @@ def detect(model: nn.Module, img_path: Union[str, np.ndarray], class_names: List
 
         pred_results = model(img)
         classes:Optional[List[int]] = None # the classes to keep
-        det, det_logits = non_max_suppression(pred_results, conf_thres, iou_thres, classes, agnostic_nms, max_det=max_det)
+        det, det_logits = fix_non_max_suppression(pred_results, conf_thres, iou_thres, classes, agnostic_nms, max_det=max_det)
         det, det_logits = det[0], det_logits[0]
 
         gn = torch.tensor(img_src.shape)[[1, 0, 1, 0]]  # normalization gain whwh
