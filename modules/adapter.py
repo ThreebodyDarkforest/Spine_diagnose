@@ -1,7 +1,7 @@
 import torch
 from detector import detect, get_yolo_model
 from util import filter_box, filter_box_deperacated, plot_boxes, crop_img, get_center, IMG_EXT
-from classifier import get_resnet_model, classify, get_vit_model, get_swin_model
+from classifier import get_resnet_model, classify, get_vit_model, get_swin_model, get_resnest_model
 from evaler import evalutate
 import cv2, os
 from typing import Union, List
@@ -28,6 +28,7 @@ from yolov6.utils.general import increment_name, find_latest_checkpoint, check_i
 from resnet.core.trainer import Trainer as resn_Trainer
 from vit.core.trainer import Trainer as vit_Trainer
 from swin_trans.core.trainer import Trainer as swin_Trainer
+from resnest.core.train import Trainer as resnest_Trainer
 
 PATH = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
@@ -50,12 +51,13 @@ def predict(args):
     cfgs = load_yaml(args.yaml)
     if 'yolov6' in cfgs['detect']:
         detect_model, stride, dclass_names = get_yolo_model(args.detect_model, args.yaml, device=device)
-    if 'resnet' in cfgs['classify']:
-        classify_modelA, cclass_namesA, classify_modelB, cclass_namesB = get_resnet_model(args.vert_model, args.disc_model, args.yaml, device=device)
-    if 'ViT' in cfgs['classify']:
-        classify_model, cclass_names = get_vit_model(args.classify_model, args.yaml, device=device)
-    if 'swin' in cfgs['classify']:
-        classify_model, cclass_names = get_swin_model(args.classify_model, args.yaml, device=device)
+    if 'resnet' in cfgs['classify1']:
+        classify_modelA, cclass_namesA = get_resnet_model(args.vert_model, args.yaml, device=device)
+        classify_modelB, cclass_namesB = get_resnest_model(args.disc_model, args.yaml, device=device)
+    #if 'ViT' in cfgs['classify']:
+    #    classify_model, cclass_names = get_vit_model(args.classify_model, args.yaml, device=device)
+    #if 'swin' in cfgs['classify']:
+    #    classify_model, cclass_names = get_swin_model(args.classify_model, args.yaml, device=device)
     
     #assert detect_model is not None and classify_model is not None, 'Invalid model path or file.'
 
@@ -241,6 +243,35 @@ def train_resnet(args):
     trainerB.train(args.epochs, cfg.solver.lr, cfg.saver.save,
                   cfg.saver.save_every, cfg.saver.save_best, os.path.join(save_path, 'modelB'))
 
+def train_resnest(args):
+    cfg = Config.fromfile(args.conf_file)
+    LOGGER.info(f'training args are: {args}\n')
+    try:
+        device = torch.device(args.device)
+    except:
+        device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
+    data_cfg = load_yaml(args.data_path)
+    save_path = os.path.join(args.output_dir, f'{args.model}_{get_date_str()}')
+    if not os.path.exists(save_path):
+        os.makedirs(save_path)
+    modelA, modelB = None, None
+
+    assert args.pretrained is None, 'resnest does not support pretrained model.'
+    trainerA = resn_Trainer(data_cfg['ctrain1'], data_cfg['cval1'], data_cfg['dnc1'],
+                           args.model, args.workers,
+                           cfg.solver.optim, args.batch_size, modelA, device)
+
+    trainerA.train(args.epochs, cfg.solver.lr, cfg.saver.save,
+                  cfg.saver.save_every, cfg.saver.save_best, os.path.join(save_path, 'modelA'))
+    
+    trainerB = resnest_Trainer(data_cfg['ctrain2'], data_cfg['cval2'], data_cfg['dnc2'],
+                           args.model, args.workers, cfg.solver.optim, cfg.model.final_drop, cfg.solver.last_gamma,
+                           args.batch_size, modelB, device)
+
+    trainerB.train(args.epochs, cfg.solver.lr, cfg.saver.save, cfg.solver.weight_decay,
+                  cfg.solver.momentum, cfg.solver.lr_scheduler, cfg.solver.warmup_epochs,
+                  cfg.saver.save_every, cfg.saver.save_best, os.path.join(save_path, 'modelB'))
+
 def train_vit(args):
     cfg = Config.fromfile(args.conf_file)
     LOGGER.info(f'training args are: {args}\n')
@@ -294,12 +325,14 @@ def train(args):
     args.local_rank, args.rank, args.world_size = get_envs()
     if 'yolo' in args.model:
         train_yolov6(args)
-    if 'resnet' in args.model:
+    elif 'resnet' in args.model:
         train_resnet(args)
-    if 'ViT' in args.model:
+    elif 'ViT' in args.model:
         train_vit(args)
-    if 'swin' in args.model:
+    elif 'swin' in args.model:
         train_swin(args)
+    elif 'resnest' in args.model:
+        train_resnest(args)
     else:
         raise ValueError('Invalid type of model.')
 

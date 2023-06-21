@@ -12,23 +12,33 @@ import torch.nn.functional as F
 from resnet.core import util as resnet_util
 from vit.core import util as vit_util
 from swin_trans.core import util as swin_util
+from resnest.torch.models.build import get_model
 
 transform = data_transform['val']
 
-def get_resnet_model(weightsA, weightsB, config_path, half: bool = False, \
+def get_resnet_model(weights, config_path, half: bool = False, \
                      pretrained: bool = False, device = 'cpu'):
-    assert '.pt' in weightsA and '.pt' in weightsB, 'Invalid model path.'
+    assert '.pt' in weights, 'Invalid model path.'
     _dict = load_yaml(config_path)
-    model_type = _dict['classify']
-    class_namesA, class_numA = _dict['dnames1'], _dict['dnc1']
-    class_namesB, class_numB = _dict['dnames2'], _dict['dnc2']
+    model_type = _dict['classify1']
+    class_names, class_num = _dict['dnames1'], _dict['dnc1']
     if not pretrained:
-        modelA = resnet_util.load_model(weightsA, class_numA, model_type, device)
-        modelB = resnet_util.load_model(weightsB, class_numB, model_type, device)
+        model = resnet_util.load_model(weights, class_num, model_type, device)
     else:
-        modelA = resnet_util.load_pretrained(weightsA, class_numA, model_type, device)
-        modelB = resnet_util.load_pretrained(weightsB, class_numB, model_type, device)
-    return modelA, class_namesA, modelB, class_namesB
+        model = resnet_util.load_pretrained(weights, class_num, model_type, device)
+    return model, class_names
+
+def get_resnest_model(weights, config_path, half: bool = False, \
+                      pretrained: bool = False, device = 'cpu'):
+    assert '.pt' in weights, 'Invalid model path.'
+    _dict = load_yaml(config_path)
+    model_type = _dict['classify2']
+    class_names, class_num = _dict['dnames2'], _dict['dnc2']
+    #assert model_type in torch.hub.list('zhanghang1989/ResNeSt', force_reload=True)
+    model = get_model(model_type)(pretrained=pretrained, num_classes=class_num * 2).to(device)
+    checkpoint = torch.load(weights)
+    model.load_state_dict(checkpoint)
+    return model, class_names
 
 def get_vit_model(weights, config_path, half: bool = False, \
                      pretrained: bool = False, device = 'cpu'):

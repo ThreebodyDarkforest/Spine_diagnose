@@ -28,7 +28,7 @@ def add_gaussian_noise(img, mean=0, std=1):
     return Image.fromarray(np.uint8(noisy_img))
 
 class SpineDataSet(Dataset):
-    def __init__(self, path, transforms=None):
+    def __init__(self, path, class_cnt, transforms=None):
         data_paths = sorted(glob.glob(os.path.join(path, '**.jpg')))
         anno_paths = sorted(glob.glob(os.path.join(path, '**.txt')))
         self.transforms = transforms
@@ -39,9 +39,10 @@ class SpineDataSet(Dataset):
             with open(anno_path, 'r') as f:
                 ret = f.readline()
                 disease_type = ast.literal_eval(ret[2:])
-                if len(disease_type) == 0: disease_type.extend([5, 5])
-                if len(disease_type) <= 1: disease_type.append(5)
-                self.data_info.append([img_path, torch.tensor(disease_type, dtype=torch.long)])
+                if len(disease_type) == 0: disease_type.extend([class_cnt - 1, class_cnt - 1])
+                if len(disease_type) <= 1: disease_type.append(class_cnt - 1)
+                assert max(disease_type) < class_cnt, 'Invalid dataset.'
+                self.data_info.append([img_path, disease_type])
 
     def __len__(self) -> int:
         return len(self.data_info)
@@ -54,9 +55,9 @@ class SpineDataSet(Dataset):
         return data, target
 
 
-def get_dataloader(img_dir, batch_size: int = 32, dtype=None, num_workers: int = 0):
+def get_dataloader(img_dir, class_cnt, batch_size: int = 32, shuffle = False, dtype=None, num_workers: int = 0):
     transform = data_transform['val'] if dtype == 'val' else data_transform['train']
-    dataset = SpineDataSet(img_dir, transform)
-    sampler = torch.utils.data.distributed.DistributedSampler(dataset)
-    return DataLoader(dataset, batch_size, num_workers=num_workers, pin_memory=True, sampler=sampler), sampler
+    dataset = SpineDataSet(img_dir, class_cnt, transform)
+    #sampler = torch.utils.data.distributed.DistributedSampler(dataset, shuffle=shuffle)
+    return DataLoader(dataset, batch_size, shuffle=True, num_workers=num_workers, pin_memory=True)
 
