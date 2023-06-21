@@ -44,6 +44,7 @@ def get_args_parser(add_help=True):
     parser.add_argument('--hide-labels', default=False, action='store_true', help='hide labels.')
     parser.add_argument('--hide-conf', default=False, action='store_true', help='hide confidences.')
     parser.add_argument('--half', action='store_true', help='whether to use FP16 half-precision inference.')
+    parser.add_argument('--host', type='str', default='127.0.0.1', help='host to load webui.')
 
     args = parser.parse_args()
     LOGGER.info(args)
@@ -79,4 +80,4 @@ if __name__ == "__main__":
     args = get_args_parser()
     webui_predict = lambda image : main(image, args)
     interface = gradio.Interface(fn=webui_predict, inputs="image", outputs="image")
-    interface.launch()
+    interface.launch(server_name=args.host)
