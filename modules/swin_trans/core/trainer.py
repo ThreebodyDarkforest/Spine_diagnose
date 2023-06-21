@@ -4,7 +4,7 @@ from .util import get_raw_model, load_model
 import torch
 import torch.nn as nn
 import torch.optim as optim
-from resnet.data.datasets import get_dataloader
+from swin_trans.data.datasets import get_dataloader
 import os
 from components.logger import LOGGER
 
