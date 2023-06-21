@@ -28,11 +28,24 @@ Spinal Disease Dataset脊柱疾病数据集详情请见[链接](https://tianchi.
 
 本项目提供了快速部署模型推理的方式。
 
+- 克隆仓库
+
+```
+git clone https://www.github.com/ThreebodyDarkforest/Spine_diagnose
+cd Spine_diagnose
+```
+
 - 下载模型文件
 
 您需要首先通过以下链接下载本项目需要的文件，并将它们存放在 `Spine_diagnose/weights` 目录下。
 
 权重文件下载链接：https://mega.nz/file/sHVQGQLI#oiD6etmKEnG4ZQZBztNcoa3WWRYIcsbpT2I3CNsOh4s
+
+- 安装依赖
+
+```
+pip install -r requirements.txt
+```
 
 - 获取结果
 
